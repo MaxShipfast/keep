@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_SCAN_URL": "https://keep-scan.shipfastvc.workers.dev",
+        "EXPO_PUBLIC_SCAN_TOKEN": "4ecaea97499b41e1fca37cd5b98195c9124caf1301ab211871a0bd642a14d883",
+        "EXPO_PUBLIC_RC_API_KEY": "appl_OFjzkfNuvpUayPuoYHJLxOjDloz"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SCAN_URL": "https://keep-scan.shipfastvc.workers.dev",
+        "EXPO_PUBLIC_SCAN_TOKEN": "4ecaea97499b41e1fca37cd5b98195c9124caf1301ab211871a0bd642a14d883",
+        "EXPO_PUBLIC_RC_API_KEY": "appl_OFjzkfNuvpUayPuoYHJLxOjDloz"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

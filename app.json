@@ -1,25 +1,59 @@
 {
   "expo": {
-    "name": "keep",
-    "slug": "keep",
+    "name": "Keep",
+    "slug": "keepglp1",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0E15",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.maxwellzhou.keepapp",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Keep uses the camera for one thing: pointing it at food to count the protein in your meal.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.maxwellzhou.keepapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A0E15",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Keep uses the camera for one thing: pointing it at food to count the protein in your meal."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#0A0E15"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9340e51c-a0ff-4572-b97b-1f300eede7dc"
+      }
+    },
+    "owner": "maxshipfasts-team"
   }
 }
