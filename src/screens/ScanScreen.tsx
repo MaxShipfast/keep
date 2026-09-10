@@ -3,11 +3,12 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View 
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { GButton, GhostButton } from '../components/ui';
 import { useStore, floorG, todayProtein } from '../store';
-import { scanMeal, scanIsMock, type ScanResult } from '../lib/scan';
+import { scanMeal, scanIsMock, isNotFood, type ScanResult } from '../lib/scan';
 import { track } from '../lib/analytics';
 import type { RootStackParamList } from '../nav';
 
@@ -31,9 +32,14 @@ export function ScanScreen({ navigation }: Props) {
     if (busy || !camRef.current) return;
     setBusy(true);
     try {
-      const photo = await camRef.current.takePictureAsync({ base64: true, quality: 0.4 });
-      if (!photo?.base64) throw new Error('No image captured');
-      const r = await scanMeal(photo.base64);
+      const photo = await camRef.current.takePictureAsync({ quality: 0.8 });
+      if (!photo?.uri) throw new Error('No image captured');
+      const base64 = await prepareForUpload(photo.uri, photo.width, photo.height);
+      const r = await scanMeal(base64);
+      if (isNotFood(r)) {
+        Alert.alert("Couldn't find food", 'Get closer so the plate fills the frame, or type the meal instead.');
+        return;
+      }
       setResult(r);
       track('scan_complete', { protein: r.proteinG, mock: scanIsMock });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -83,6 +89,7 @@ export function ScanScreen({ navigation }: Props) {
       {!result ? (
         <View style={s.bottomBar}>
           {scanIsMock ? <Text style={s.mockNote}>Demo mode — backend key not configured yet</Text> : null}
+          {busy ? <Text style={s.mockNote}>Counting protein…</Text> : null}
           {manual ? (
             <ManualEntry {...{ manualName, setManualName, manualG, setManualG, log }} />
           ) : (
@@ -138,6 +145,29 @@ export function ScanScreen({ navigation }: Props) {
       )}
     </View>
   );
+}
+
+/**
+ * Longest side of the photo sent to the backend. Plenty for a portion estimate, and keeps the
+ * upload around 100–250 KB instead of the 1–3 MB a raw iPhone capture produces (which made every
+ * scan a 20–60 s wait and pushed the request past the fetch timeout on slow connections).
+ */
+const MAX_UPLOAD_SIDE = 1024;
+
+/** Downscales and re-encodes a capture, returning raw base64 JPEG (no data-URI prefix). */
+async function prepareForUpload(uri: string, width: number, height: number): Promise<string> {
+  const ctx = ImageManipulator.manipulate(uri);
+  if (Math.max(width, height) > MAX_UPLOAD_SIDE) {
+    ctx.resize(width >= height ? { width: MAX_UPLOAD_SIDE, height: null } : { width: null, height: MAX_UPLOAD_SIDE });
+  }
+  const image = await ctx.renderAsync();
+  try {
+    const out = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.6, base64: true });
+    if (!out.base64) throw new Error('Could not encode the photo');
+    return out.base64;
+  } finally {
+    image.release();
+  }
 }
 
 function ManualEntry({

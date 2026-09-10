@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -51,10 +51,16 @@ export default function App() {
   });
   const onboarded = useStore((s) => s.profile.onboarded);
   const entitled = useStore((s) => s.entitled);
+  // The persisted store loads from AsyncStorage asynchronously. Mounting the navigator before that
+  // finishes picks the initial route from default state, so a paid user could land on Welcome.
+  const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
 
   useEffect(() => {
+    const unsubHydration = useStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useStore.persist.hasHydrated()) setHydrated(true);
     initAnalytics();
-    initPurchases();
+    // Keeps `entitled` in sync with RevenueCat: launch check, renewals, expiry, restores.
+    initPurchases((v) => useStore.getState().setEntitled(v));
     track('app_open');
     // Best-effort cloud backup on every local change (no-op when signed out).
     const unsub = useStore.subscribe((s) =>
@@ -65,14 +71,19 @@ export default function App() {
         weighIns: s.weighIns,
       }))
     );
-    return unsub;
+    return () => {
+      unsub();
+      unsubHydration();
+    };
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !hydrated) {
     return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
   }
 
-  const initialRoute: keyof RootStackParamList = onboarded && entitled ? 'Home' : 'Welcome';
+  // Onboarded but not entitled (subscription lapsed, or RevenueCat found no purchase on this
+  // device) goes straight back to the hard paywall instead of redoing the quiz.
+  const initialRoute: keyof RootStackParamList = !onboarded ? 'Welcome' : entitled ? 'Home' : 'Paywall';
 
   return (
     <NavigationContainer theme={theme}>
