@@ -60,6 +60,9 @@ const options = {
   H_fg: { bg: 'transparent', svg: `<g transform="translate(512 512) scale(0.7) translate(-512 -512)">${flameAt(512, 712, 0.9, 'flameIn') + dumbbellAt(512, 760, 0.98, -14, 'gunmetal', '#151B28')}</g>` },
   I_fg: { bg: 'transparent', svg: `<g transform="translate(512 512) scale(0.7) translate(-512 -512)">${flameAt(512, 712, 0.9, 'flameIn') + dumbbellAt(512, 760, 0.98, -14, 'silver', '#4A556A')}</g>` },
   NAVY_bg: { bg: NAVY_BG, svg: '' },
+  // FLAME: the flame alone, larger and optically centred (flames carry their weight low).
+  FLAME: { bg: NAVY_BG, svg: glow(512, 850, 0.92) + flameAt(512, 850, 0.92, 'flameIn') },
+  FLAME_fg: { bg: 'transparent', svg: `<g transform="translate(512 512) scale(0.7) translate(-512 -512)">${flameAt(512, 850, 0.92, 'flameIn')}</g>` },
 };
 
 const only = process.argv[2]?.split(',');

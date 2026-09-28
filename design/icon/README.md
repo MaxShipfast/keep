@@ -1,9 +1,9 @@
 # App icon
 
-An emoji-style blue flame with a chrome dumbbell, in the original icon's palette: dark navy
+An emoji-style blue flame with a white-hot core, in the original icon's palette: dark navy
 background, a flame ramping from #94B8FF at the tips to #2F58DA at the base, and a soft blue glow
-(option `I` in `icon.mjs`). All artwork is original SVG, so there are no third-party emoji licences.
-`H` (gunmetal plates) and `J` (dark core like the first flame icon) were the close alternatives.
+(option `FLAME` in `icon.mjs`). All artwork is original SVG, so there are no third-party emoji
+licences. `I`, `H` and `J` are earlier versions with a dumbbell.
 
 ```
 cd design/icon
