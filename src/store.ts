@@ -33,12 +33,15 @@ type State = {
   liftDates: Record<string, true>;
   weighIns: WeighIn[];
   entitled: boolean;
+  /** The user agreed to send meal photos to OpenAI for analysis (App Review 5.1.2(i)). */
+  aiConsent: boolean;
 
   setProfile: (p: Partial<Profile>) => void;
   logMeal: (m: Omit<Meal, 'id' | 'at'>) => void;
   logLift: () => void;
   logWeighIn: (weightLb: number) => void;
   setEntitled: (v: boolean) => void;
+  setAiConsent: (v: boolean) => void;
   resetAll: () => void;
   /** Replaces local data with a cloud backup (used at sign-in). */
   hydrate: (remote: Partial<Pick<State, 'profile' | 'mealsByDate' | 'liftDates' | 'weighIns'>>) => void;
@@ -104,6 +107,7 @@ export const useStore = create<State>()(
       liftDates: {},
       weighIns: [],
       entitled: false,
+      aiConsent: false,
 
       setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
       logMeal: (m) =>
@@ -124,6 +128,7 @@ export const useStore = create<State>()(
           };
         }),
       setEntitled: (v) => set({ entitled: v }),
+      setAiConsent: (v) => set({ aiConsent: v }),
       // Erases the plan and logs but not the subscription: that belongs to the Apple ID.
       resetAll: () =>
         set((s) => ({ profile: defaultProfile, mealsByDate: {}, liftDates: {}, weighIns: [], entitled: s.entitled })),

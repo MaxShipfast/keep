@@ -54,6 +54,24 @@ export function ScanScreen({ navigation }: Props) {
 
   const capture = async () => {
     if (busy || !camRef.current) return;
+    // Read live state: the Allow button re-enters capture before this render's state updates.
+    if (!useStore.getState().aiConsent) {
+      Alert.alert(
+        'Scan with AI?',
+        "To estimate protein, Keep sends your meal photo to OpenAI. Keep doesn't store your photos, and OpenAI doesn't use them to train its models. You can always type meals instead.",
+        [
+          { text: 'Not now', style: 'cancel' },
+          {
+            text: 'Allow',
+            onPress: () => {
+              useStore.getState().setAiConsent(true);
+              capture();
+            },
+          },
+        ]
+      );
+      return;
+    }
     setBusy(true);
     try {
       const photo = await camRef.current.takePictureAsync({ quality: 0.8 });

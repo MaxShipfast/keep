@@ -128,17 +128,15 @@ Done: app + backend built and verified end-to-end · production build compiled o
 subscriptions + RevenueCat configured.
 
 Remaining (in order):
-1. `eas submit --platform ios --latest` (first run is interactive: Apple login + create/select the
-   ASC app record — claims the name). After the first submit, builds AND submits run fully
-   non-interactively.
+1. New production build (`eas build -p ios --profile production`), because the AI-consent prompt
+   landed after the last TestFlight build, then `eas submit -p ios --latest`.
 2. TestFlight sandbox test: real purchase sheet, prices from RevenueCat, app unlocks after trial
    start. This is the highest-risk untested integration.
-3. Export screenshots from the canvas → App Store listing (subtitle "Lose fat, not muscle";
-   keywords: glp-1, ozempic, protein, zepbound, mounjaro, wegovy, tracker).
-4. App Privacy questionnaire: Photos (app functionality, not linked) + Usage Data (analytics, not
-   linked). Review notes: informational tracker, no dosing advice, data on-device, photos
-   processed transiently.
-5. Submit for review. Health+subscription apps sometimes bounce once — respond, don't panic.
+3. Fill App Store Connect from `STORE_LISTING.md`: name, subtitle, keywords, description, review
+   notes, privacy label, age rating, and the medical-device answer. Upload
+   `store-screenshots/01…06.png` to the 6.9" slot.
+4. Submit for review with both subscriptions attached. Health+subscription apps sometimes bounce
+   once — respond, don't panic.
 
 ### Security TODOs (pre- or immediately post-launch)
 - **Rotate the OpenAI key** (it transited chat/terminal during setup): new key at
@@ -205,7 +203,9 @@ Gotchas learned the hard way:
    Don't promise things the app doesn't do (the old "we remind you" trial row had no notification
    behind it). Store errors show plain language; technical detail stays behind "Show details".
    Mock purchases exist only in `__DEV__`/Expo Go — store builds fail closed.
-6. Meal photos are transient: never stored server-side; privacy policy language depends on this.
+6. Meal photos leave the phone only after the user taps Allow on the one-time AI prompt
+   (`aiConsent`, App Review guideline 5.1.2(i)), and are never stored server-side. The privacy
+   policy and the App Privacy label both depend on this.
 7. Dates are always **local** (`dateKey()` in `lib/dates.ts`) — never `toISOString()`, which is
    the UTC date and puts meals on the wrong day for most of the world for part of every day.
 8. Persisted state must load safely: new `Profile` fields need a default in `defaultProfile`
