@@ -5,14 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { Screen, Eyebrow, Card, InsightCard, BackButton } from '../components/ui';
 import { weightAmount, kgToLb } from '../lib/units';
-import {
-  useStore,
-  guardScore,
-  hitDaysLast7,
-  liftsLast7,
-  weeklyLossPct,
-  dayHit,
-} from '../store';
+import { useStore, guardBreakdown, hitDaysLast7, liftsLast7, dayHit } from '../store';
 import { DAY_LABELS, currentWeekDates, dateKey } from '../lib/dates';
 import { track } from '../lib/analytics';
 import type { RootStackParamList } from '../nav';
@@ -27,21 +20,29 @@ export function GuardScreen({ navigation }: Props) {
   const [weighOpen, setWeighOpen] = useState(false);
   const [weighVal, setWeighVal] = useState(String(weightAmount(state.profile.weightLb, unit)));
 
-  const score = guardScore(state);
+  const breakdown = guardBreakdown(state);
+  const score = breakdown.total;
   const hit7 = hitDaysLast7(state);
   const lifts = liftsLast7(state);
-  const pace = weeklyLossPct(state);
+  const pace = breakdown.paceRate;
   const liftedToday = Boolean(state.liftDates[dateKey()]);
-
-  const proteinPts = Math.round((hit7 / 7) * 60);
-  const liftPts = Math.round((Math.min(lifts, 3) / 3) * 25);
-  const pacePts = score - proteinPts - liftPts;
 
   const week = currentWeekDates();
   const today = new Date();
-  const weekendMisses = week.filter(
-    (d) => d <= today && !dayHit(state, d) && [5, 6].includes((d.getDay() + 6) % 7)
-  ).length;
+  const todayKey = dateKey(today);
+  // Only finished days can be misses; today is still in progress.
+  const finished = week.filter((d) => d <= today && dateKey(d) !== todayKey);
+  const isWeekend = (d: Date) => [5, 6].includes((d.getDay() + 6) % 7);
+  const weekendMisses = finished.filter((d) => isWeekend(d) && !dayHit(state, d)).length;
+  const weekdayMisses = finished.filter((d) => !isWeekend(d) && !dayHit(state, d)).length;
+  const hasLogs = Object.keys(state.mealsByDate).length > 0;
+  const insight = !hasLogs
+    ? 'log meals daily so Keep can spot your pattern and tell you exactly what to fix.'
+    : weekendMisses > 0 && weekdayMisses === 0
+      ? "your misses land on weekends. A Saturday-morning protein shake is the easiest way to lift next week's score."
+      : hit7 >= 5
+        ? 'strong week. Consistency is what protects muscle — keep the floor streak alive.'
+        : 'protein at breakfast is the easiest win on a suppressed appetite — front-load it and the floor gets easier.';
 
   return (
     <Screen scroll>
@@ -57,15 +58,15 @@ export function GuardScreen({ navigation }: Props) {
         <BreakdownRow
           icon="nutrition"
           title="Protein floor · 60% of score"
-          pts={`${proteinPts}/60`}
-          frac={proteinPts / 60}
+          pts={`${breakdown.protein}/60`}
+          frac={breakdown.protein / 60}
           note={`Hit ${hit7} of 7 days this week`}
         />
         <BreakdownRow
           icon="barbell"
           title="Strength training · 25%"
-          pts={`${liftPts}/25`}
-          frac={liftPts / 25}
+          pts={`${breakdown.lift}/25`}
+          frac={breakdown.lift / 25}
           note={`${lifts} of 3 target sessions this week`}
           action={liftedToday ? '✓ Logged today' : '+ Log lift'}
           actionDone={liftedToday}
@@ -78,44 +79,61 @@ export function GuardScreen({ navigation }: Props) {
         <BreakdownRow
           icon="speedometer"
           title="Loss pace · 15%"
-          pts={`${Math.max(0, pacePts)}/15`}
-          frac={Math.max(0, pacePts) / 15}
+          pts={`${breakdown.pace}/15`}
+          frac={breakdown.pace / 15}
           note={
             pace === null
-              ? 'Add a weekly weigh-in to track pace'
-              : `${pace > 0 ? '−' : '+'}${Math.abs(pace).toFixed(1)}%/week · ${pace <= 1.25 ? 'safe zone' : 'faster than safe — muscle risk rises'}`
+              ? state.weighIns.length === 0
+                ? 'Add a weekly weigh-in to track pace'
+                : 'Weigh in again in a few days to see your pace'
+              : `${pace >= 0 ? '−' : '+'}${Math.abs(pace).toFixed(1)}%/week · ${pace <= 1.25 ? 'steady pace' : 'faster than ideal — protein matters most now'}`
           }
           action={weighOpen ? undefined : '+ Weigh-in'}
-          onAction={() => setWeighOpen(true)}
+          onAction={() => {
+            setWeighVal(String(weightAmount(state.profile.weightLb, unit)));
+            setWeighOpen(true);
+          }}
         />
       </View>
 
       {weighOpen ? (
         <Card style={{ marginTop: 8, gap: 10 }}>
+          <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold }}>Today's weight ({unit})</Text>
           <TextInput
             value={weighVal}
             onChangeText={setWeighVal}
             keyboardType="decimal-pad"
+            autoFocus
+            selectTextOnFocus
+            maxLength={6}
             style={s.input}
             placeholder={`Weight in ${unit}`}
             placeholderTextColor={colors.text3}
           />
-          <Pressable
-            style={s.miniCta}
-            onPress={() => {
-              const raw = parseFloat(weighVal);
-              const v = unit === 'kg' ? kgToLb(raw) : raw;
-              if (!raw || v < 60 || v > 600) {
-                Alert.alert('Check the number', `Enter your weight in ${unit === 'kg' ? 'kilograms' : 'pounds'}.`);
-                return;
-              }
-              logWeighIn(Math.round(v * 10) / 10);
-              track('weighin_logged');
-              setWeighOpen(false);
-            }}
-          >
-            <Text style={{ color: '#fff', fontFamily: font.bold, fontSize: 14 }}>Save weigh-in</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Pressable style={[s.miniCta, s.miniCtaGhost]} onPress={() => setWeighOpen(false)}>
+              <Text style={{ color: colors.text2, fontFamily: font.bold, fontSize: 14 }}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[s.miniCta, { flex: 1 }]}
+              onPress={() => {
+                const raw = parseFloat(weighVal.replace(',', '.'));
+                const v = unit === 'kg' ? kgToLb(raw) : raw;
+                if (!Number.isFinite(raw) || v < 60 || v > 600) {
+                  Alert.alert(
+                    'Check the number',
+                    `Enter your weight in ${unit === 'kg' ? 'kilograms (27–272)' : 'pounds (60–600)'}.`
+                  );
+                  return;
+                }
+                logWeighIn(Math.round(v * 10) / 10);
+                track('weighin_logged');
+                setWeighOpen(false);
+              }}
+            >
+              <Text style={{ color: '#fff', fontFamily: font.bold, fontSize: 14 }}>Save weigh-in</Text>
+            </Pressable>
+          </View>
         </Card>
       ) : null}
 
@@ -143,11 +161,7 @@ export function GuardScreen({ navigation }: Props) {
 
       <InsightCard style={{ marginTop: 10 }}>
         <Text style={{ color: colors.text, fontFamily: font.bold }}>Your pattern: </Text>
-        {weekendMisses > 0
-          ? 'your misses cluster on weekends. A Saturday-morning protein shake is the single biggest lever on next week\'s score.'
-          : hit7 >= 5
-            ? 'strong week. Consistency is what actually protects muscle — keep the floor streak alive.'
-            : 'log meals daily so Keep can spot your miss pattern and tell you exactly what to fix.'}
+        {insight}
       </InsightCard>
     </Screen>
   );
@@ -234,4 +248,5 @@ const s = StyleSheet.create({
     fontFamily: font.regular,
   },
   miniCta: { backgroundColor: colors.blue, borderRadius: 12, padding: 13, alignItems: 'center' },
+  miniCtaGhost: { backgroundColor: colors.surface2, paddingHorizontal: 20 },
 });

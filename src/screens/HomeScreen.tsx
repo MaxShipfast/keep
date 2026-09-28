@@ -16,7 +16,7 @@ import {
   liftsLast7,
   currentStreak,
 } from '../store';
-import { DAY_FULL, weekdayMon0 } from '../lib/dates';
+import { dateKey, weekdayMon0 } from '../lib/dates';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -28,7 +28,9 @@ export function HomeScreen({ navigation }: Props) {
   const score = guardScore(state);
   const streak = currentStreak(state);
   const isShotDay = weekdayMon0() === state.profile.shotDay;
-  const todayMeals = state.mealsByDate[new Date().toISOString().slice(0, 10)] ?? [];
+  // Local-date key, same as logMeal uses (toISOString would be the UTC date: wrong every evening
+  // in the Americas and every morning in Australia).
+  const todayMeals = state.mealsByDate[dateKey()] ?? [];
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   const toBronze = Math.max(0, 7 - streak);
 
@@ -117,7 +119,8 @@ export function HomeScreen({ navigation }: Props) {
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.semibold }}>{m.name}</Text>
                   <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 1 }}>
-                    {new Date(m.at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · {m.source}
+                    {new Date(m.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} ·{' '}
+                    {m.source === 'scan' ? 'Scanned' : 'Added manually'}
                   </Text>
                 </View>
                 <Text style={{ color: colors.blue, fontSize: 15, fontFamily: font.heavy }}>+{m.proteinG}g</Text>

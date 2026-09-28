@@ -10,6 +10,7 @@ export type RootStackParamList = {
   Reveal: undefined;
   Projection: undefined;
   Paywall: undefined;
+  SaveProgress: undefined;
   Home: undefined;
   Guard: undefined;
   Streaks: undefined;

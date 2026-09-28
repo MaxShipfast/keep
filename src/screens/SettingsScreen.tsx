@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { Screen, Eyebrow, H1, BackButton } from '../components/ui';
@@ -98,6 +99,13 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={s.rowKey}>Keep Pro</Text>
           <Text style={s.rowVal}>{state.entitled ? 'Active' : 'Inactive'}</Text>
         </View>
+        <LinkRow title="Manage or cancel subscription" url={MANAGE_SUBSCRIPTIONS_URL} />
+      </View>
+
+      <Text style={s.groupTitle}>Legal</Text>
+      <View style={s.group}>
+        <LinkRow title="Privacy Policy" url={PRIVACY_URL} first />
+        <LinkRow title="Terms of Use" url={TERMS_URL} />
       </View>
 
       <Text style={s.groupTitle}>Data</Text>
@@ -105,7 +113,7 @@ export function SettingsScreen({ navigation }: Props) {
         <Pressable
           style={s.row}
           onPress={() =>
-            Alert.alert('Start over?', 'This erases your plan and all logged data on this device.', [
+            Alert.alert('Start over?', 'This erases your plan and all logged data on this device. Your subscription stays active.', [
               { text: 'Cancel', style: 'cancel' },
               {
                 text: 'Erase everything',
@@ -127,6 +135,23 @@ export function SettingsScreen({ navigation }: Props) {
         guidance (1.2–1.6 g/kg). Always follow your prescriber's instructions for medication and diet.
       </Text>
     </Screen>
+  );
+}
+
+const MANAGE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
+const PRIVACY_URL = 'https://keep-scan.shipfastvc.workers.dev/privacy';
+const TERMS_URL = 'https://keep-scan.shipfastvc.workers.dev/terms';
+
+function LinkRow({ title, url, first }: { title: string; url: string; first?: boolean }) {
+  return (
+    <Pressable
+      style={[s.row, !first && { borderTopWidth: 0 }]}
+      accessibilityRole="link"
+      onPress={() => Linking.openURL(url).catch(() => Alert.alert("Couldn't open the link", url))}
+    >
+      <Text style={s.rowKey}>{title}</Text>
+      <Ionicons name="open-outline" size={15} color={colors.text3} />
+    </Pressable>
   );
 }
 

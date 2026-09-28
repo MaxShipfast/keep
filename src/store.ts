@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist, type PersistStorage, type StorageValue } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dateKey, daysAgo, weekdayMon0 } from './lib/dates';
 
@@ -44,14 +44,56 @@ type State = {
   hydrate: (remote: Partial<Pick<State, 'profile' | 'mealsByDate' | 'liftDates' | 'weighIns'>>) => void;
 };
 
+/** Pounds only where people weigh themselves in pounds; kilograms everywhere else. */
+function localeUnit(): 'lb' | 'kg' {
+  try {
+    const parts = Intl.DateTimeFormat().resolvedOptions().locale.split(/[-_]/);
+    const region = parts.find((p, i) => i > 0 && /^[A-Z]{2}$/.test(p));
+    if (!region) return 'lb';
+    return ['US', 'LR', 'MM', 'GB'].includes(region) ? 'lb' : 'kg';
+  } catch {
+    return 'lb';
+  }
+}
+
 const defaultProfile: Profile = {
   med: 'Zepbound',
   shotDay: 3,
   weightLb: 200,
-  unit: 'lb',
+  unit: localeUnit(),
   train: '1–2× a week',
   goal: '',
   onboarded: false,
+};
+
+/**
+ * AsyncStorage adapter that can never block launch: an unreadable or corrupted save
+ * resolves to "no saved state" (defaults) instead of rejecting — zustand leaves the
+ * hydration gate closed forever when getItem rejects, which would black-screen the app.
+ */
+export const persistStorage: PersistStorage<State> = {
+  getItem: async (name) => {
+    try {
+      const raw = await AsyncStorage.getItem(name);
+      return raw ? (JSON.parse(raw) as StorageValue<State>) : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (name, value) => {
+    try {
+      await AsyncStorage.setItem(name, JSON.stringify(value));
+    } catch {
+      // Disk full or similar: the next state change retries the write.
+    }
+  },
+  removeItem: async (name) => {
+    try {
+      await AsyncStorage.removeItem(name);
+    } catch {
+      // Nothing useful to do; a stale key is overwritten on the next write.
+    }
+  },
 };
 
 export const useStore = create<State>()(
@@ -72,13 +114,19 @@ export const useStore = create<State>()(
         }),
       logLift: () => set((s) => ({ liftDates: { ...s.liftDates, [dateKey()]: true } })),
       logWeighIn: (weightLb) =>
-        set((s) => ({
-          weighIns: [...s.weighIns, { at: Date.now(), weightLb }],
-          profile: { ...s.profile, weightLb },
-        })),
+        set((s) => {
+          // One weigh-in per day: re-weighing (or fixing a typo) replaces today's entry.
+          const today = dateKey();
+          const others = s.weighIns.filter((w) => dateKey(new Date(w.at)) !== today);
+          return {
+            weighIns: [...others, { at: Date.now(), weightLb }],
+            profile: { ...s.profile, weightLb },
+          };
+        }),
       setEntitled: (v) => set({ entitled: v }),
+      // Erases the plan and logs but not the subscription: that belongs to the Apple ID.
       resetAll: () =>
-        set({ profile: defaultProfile, mealsByDate: {}, liftDates: {}, weighIns: [], entitled: false }),
+        set((s) => ({ profile: defaultProfile, mealsByDate: {}, liftDates: {}, weighIns: [], entitled: s.entitled })),
       hydrate: (remote) =>
         set((s) => ({
           profile: { ...s.profile, ...(remote.profile ?? {}) },
@@ -87,7 +135,16 @@ export const useStore = create<State>()(
           weighIns: remote.weighIns ?? s.weighIns,
         })),
     }),
-    { name: 'keep-store', storage: createJSONStorage(() => AsyncStorage) }
+    {
+      name: 'keep-store',
+      storage: persistStorage,
+      // Data persisted by an older build may predate newer Profile fields (e.g. `unit`).
+      // Layer whatever was stored over the defaults so added fields never come back undefined.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<State>;
+        return { ...current, ...p, profile: { ...defaultProfile, ...(p.profile ?? {}) } };
+      },
+    }
   )
 );
 
@@ -165,28 +222,53 @@ export function liftsLast7(s: Pick<State, 'liftDates'>): number {
   return n;
 }
 
-/** Weekly loss as % of body weight; null when fewer than two weigh-ins. */
+const DAY_MS = 24 * 3600 * 1000;
+/** Weigh-ins closer together than this are noise (water, meals), not a loss rate. */
+const MIN_PACE_GAP_MS = 3 * DAY_MS;
+
+/**
+ * Weekly loss as % of body weight, from the latest weigh-in and the most recent one at least
+ * three days before it. Null until such a pair exists.
+ */
 export function weeklyLossPct(s: Pick<State, 'weighIns'>): number | null {
   if (s.weighIns.length < 2) return null;
   const sorted = [...s.weighIns].sort((a, b) => a.at - b.at);
   const last = sorted[sorted.length - 1];
-  const prev = sorted[sorted.length - 2];
-  const weeks = Math.max((last.at - prev.at) / (7 * 24 * 3600 * 1000), 0.25);
+  let prev: WeighIn | undefined;
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    if (last.at - sorted[i].at >= MIN_PACE_GAP_MS) {
+      prev = sorted[i];
+      break;
+    }
+  }
+  if (!prev) return null;
+  const weeks = (last.at - prev.at) / (7 * DAY_MS);
   return ((prev.weightLb - last.weightLb) / prev.weightLb / weeks) * 100;
 }
 
+export type GuardBreakdown = {
+  protein: number;
+  lift: number;
+  pace: number;
+  /** Weekly loss rate behind `pace`; null until two weigh-ins far enough apart exist. */
+  paceRate: number | null;
+  total: number;
+};
+
 /**
- * Muscle Guard score, 0–100.
- * 60% protein-floor adherence (last 7 days) + 25% strength sessions (target 3/wk)
- * + 15% loss pace (full points at ≤1.25%/wk; scaled penalty above).
+ * Muscle Guard score, 0–100: 60 pts protein-floor adherence (last 7 days) + 25 pts strength
+ * sessions (target 3/wk) + 15 pts loss pace (full at ≤1.25%/wk, scaled down to 5 above).
+ * Each part is rounded on its own and the total is their sum, so the breakdown the Guard
+ * screen shows always adds up to the headline score.
  */
+export function guardBreakdown(s: Pick<State, 'mealsByDate' | 'profile' | 'liftDates' | 'weighIns'>): GuardBreakdown {
+  const protein = Math.round((hitDaysLast7(s) / 7) * 60);
+  const lift = Math.round((Math.min(liftsLast7(s), 3) / 3) * 25);
+  const paceRate = weeklyLossPct(s);
+  const pace = paceRate !== null && paceRate > 1.25 ? Math.round(Math.max(5, 15 - (paceRate - 1.25) * 8)) : 15;
+  return { protein, lift, pace, paceRate, total: protein + lift + pace };
+}
+
 export function guardScore(s: Pick<State, 'mealsByDate' | 'profile' | 'liftDates' | 'weighIns'>): number {
-  const proteinPts = (hitDaysLast7(s) / 7) * 60;
-  const liftPts = (Math.min(liftsLast7(s), 3) / 3) * 25;
-  const pace = weeklyLossPct(s);
-  let pacePts = 15;
-  if (pace !== null && pace > 1.25) {
-    pacePts = Math.max(5, 15 - (pace - 1.25) * 8);
-  }
-  return Math.round(proteinPts + liftPts + pacePts);
+  return guardBreakdown(s).total;
 }

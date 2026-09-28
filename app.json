@@ -25,7 +25,9 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA",
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -37,7 +39,10 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Keep uses the camera for one thing: pointing it at food to count the protein in your meal."
+          "cameraPermission": "Keep uses the camera for one thing: pointing it at food to count the protein in your meal.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
         }
       ],
       [

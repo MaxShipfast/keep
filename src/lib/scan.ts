@@ -74,22 +74,25 @@ export async function scanMeal(imageBase64: string, mediaType: 'image/jpeg' | 'i
   };
 }
 
-/** True when the model saw no food in the frame (backend returns zeros + low confidence). */
+/** True when the model saw no food in the frame (the backend names it and returns no nutrition). */
 export function isNotFood(r: ScanResult): boolean {
-  return r.proteinG === 0 && r.calories === 0 && r.confidence === 'low';
+  return /not food/i.test(r.food) || (r.proteinG === 0 && r.calories === 0);
 }
 
 async function describeFailure(res: Response): Promise<string> {
   const body = (await res.json().catch(() => null)) as { error?: string; detail?: string } | null;
-  const detail = body?.error ? `${body.error}${body.detail ? ` (${body.detail})` : ''}` : '';
+  if (__DEV__) console.warn(`[scan] HTTP ${res.status}`, body);
   switch (res.status) {
     case 401:
-      return 'The scan server rejected this app build (token mismatch). Rebuild with the current EXPO_PUBLIC_SCAN_TOKEN.';
+      // Only happens when the backend token was rotated without a new app build.
+      return "Scanning isn't available in this version of Keep. Update the app from the App Store, or type the meal instead.";
+    case 422:
+      return "Couldn't read that photo. Try a different angle, or type the meal instead.";
     case 429:
       return 'Too many scans in a row. Wait a few minutes and try again.';
     case 504:
       return 'The scan took too long. Try again with better lighting or a closer shot.';
     default:
-      return detail ? `Scan failed: ${detail}` : `Scan failed (HTTP ${res.status}).`;
+      return 'Something went wrong reading that photo. Try again, or type the meal instead.';
   }
 }

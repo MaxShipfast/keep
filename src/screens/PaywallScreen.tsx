@@ -1,15 +1,31 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { Screen, GButton, GhostButton, Eyebrow, H1 } from '../components/ui';
 import { useStore } from '../store';
-import { getPlans, purchase, restore, purchasesAreMock, describeError, type Plan } from '../lib/purchases';
+import {
+  getPlans,
+  purchase,
+  restore,
+  purchasesAreMock,
+  describeError,
+  type Plan,
+  type StoreErrorMessage,
+} from '../lib/purchases';
+import { syncEnabled } from '../lib/sync';
 import { track } from '../lib/analytics';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Paywall'>;
+
+const TERMS_URL = 'https://keep-scan.shipfastvc.workers.dev/terms';
+const PRIVACY_URL = 'https://keep-scan.shipfastvc.workers.dev/privacy';
+
+function openLink(url: string) {
+  Linking.openURL(url).catch(() => Alert.alert("Couldn't open the link", url));
+}
 
 export function PaywallScreen({ navigation }: Props) {
   const profile = useStore((st) => st.profile);
@@ -17,13 +33,15 @@ export function PaywallScreen({ navigation }: Props) {
   const setEntitled = useStore((st) => st.setEntitled);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<StoreErrorMessage | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [selected, setSelected] = useState<Plan['id']>('yearly');
   const [busy, setBusy] = useState(false);
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setShowDetails(false);
     try {
       const loaded = await getPlans();
       setPlans(loaded);
@@ -44,7 +62,8 @@ export function PaywallScreen({ navigation }: Props) {
   const unlock = () => {
     setEntitled(true);
     setProfile({ onboarded: true });
-    navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    // The optional-account prompt only exists when cloud backup is switched on.
+    navigation.reset({ index: 0, routes: [{ name: syncEnabled ? 'SaveProgress' : 'Home' }] });
   };
 
   const plan = plans.find((p) => p.id === selected) ?? plans[0];
@@ -59,13 +78,13 @@ export function PaywallScreen({ navigation }: Props) {
         unlock();
       } else if (outcome === 'not_entitled') {
         Alert.alert(
-          'Purchase not recognised',
-          'The App Store confirmed the purchase but access was not granted. Tap "Restore purchase" below. If that fails, email info@shipfast.agency.'
+          'Purchase not recognized',
+          'The App Store confirmed your purchase but Keep Pro didn\'t unlock. Tap "Restore purchase" below. If that doesn\'t work, email info@shipfast.agency and we\'ll sort it out.'
         );
       }
       // 'cancelled': the user closed the App Store sheet — nothing to show.
     } catch (e) {
-      Alert.alert('Purchase failed', describeError(e));
+      Alert.alert('Purchase failed', describeError(e).friendly);
     } finally {
       setBusy(false);
     }
@@ -78,7 +97,7 @@ export function PaywallScreen({ navigation }: Props) {
       if (await restore()) unlock();
       else Alert.alert('Nothing to restore', 'No active Keep Pro subscription was found for this Apple ID.');
     } catch (e) {
-      Alert.alert('Restore failed', describeError(e));
+      Alert.alert('Restore failed', describeError(e).friendly);
     } finally {
       setBusy(false);
     }
@@ -90,7 +109,9 @@ export function PaywallScreen({ navigation }: Props) {
   const cta = busy
     ? 'One moment…'
     : !plan
-      ? 'Loading plans…'
+      ? loading
+        ? 'Loading plans…'
+        : 'Plans unavailable'
       : trialDays > 0
         ? `Start ${trialDays}-day free trial`
         : `Continue — ${plan.periodPrice}/${periodLong}`;
@@ -101,7 +122,7 @@ export function PaywallScreen({ navigation }: Props) {
       <H1>Lose fat on {profile.med}. Keep the muscle.</H1>
       <View style={{ marginTop: 18, gap: 11 }}>
         <Feature icon="scan" title="Unlimited photo protein scans" sub="Point your camera at any meal — protein counted in seconds" />
-        <Feature icon="flame" title="Muscle Guard score & streaks" sub="One weekly number that tells you if your loss is fat or muscle" />
+        <Feature icon="flame" title="Muscle Guard score & streaks" sub="One weekly number that shows whether your habits are protecting muscle" />
       </View>
 
       <View style={{ marginTop: 14, gap: 10 }}>
@@ -109,15 +130,23 @@ export function PaywallScreen({ navigation }: Props) {
           <ActivityIndicator color={colors.blue} style={{ paddingVertical: 28 }} />
         ) : loadError ? (
           <View style={s.errorBox}>
-            <Text style={s.errorTitle}>Couldn't load plans</Text>
-            <Text style={s.errorText}>{loadError}</Text>
-            <GhostButton title="Try again" onPress={loadPlans} />
+            <Text style={s.errorTitle}>Plans didn't load</Text>
+            <Text style={s.errorText}>{loadError.friendly}</Text>
+            {showDetails ? <Text style={s.errorDetail}>{loadError.technical}</Text> : null}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <GhostButton title="Try again" onPress={loadPlans} />
+              <Pressable onPress={() => setShowDetails((v) => !v)} hitSlop={8}>
+                <Text style={s.detailsToggle}>{showDetails ? 'Hide details' : 'Show details'}</Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
           plans.map((p) => (
             <Pressable
               key={p.id}
               onPress={() => setSelected(p.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selected === p.id }}
               style={[s.plan, selected === p.id && { borderColor: colors.blue, backgroundColor: colors.blueSoft }]}
             >
               <View style={{ flex: 1 }}>
@@ -146,28 +175,41 @@ export function PaywallScreen({ navigation }: Props) {
           {trialDays > 0 ? (
             <>
               {trialDays > 1 ? (
-                <TimelineRow title={`Day ${trialDays - 1} — we remind you`} sub="A heads-up before anything is charged" />
+                <TimelineRow
+                  title={`Day ${trialDays - 1} — last day to cancel`}
+                  sub="Changed your mind? Cancel by the end of today and you're never charged"
+                />
               ) : null}
               <TimelineRow
                 title={`Day ${trialDays} — trial ends`}
-                sub={`${plan.periodPrice}/${periodShort}, or cancel in two taps. Keep nothing you don't love`}
+                sub={`Then ${plan.periodPrice}/${periodShort}, renewing automatically until you cancel`}
               />
             </>
           ) : (
             <TimelineRow
               title={`Billed ${plan.periodPrice} per ${periodLong}`}
-              sub="Cancel anytime in Settings — access continues to the end of the period"
+              sub="Renews automatically until you cancel — access continues to the end of the period"
             />
           )}
         </View>
       ) : null}
 
       <GButton title={cta} onPress={onBuy} disabled={busy || loading || !plan} style={{ marginTop: 20 }} />
-      <Pressable onPress={onRestore} disabled={busy}>
-        <Text style={s.fineprint}>
-          {trialDays > 0 ? `No charge before day ${trialDays} · ` : ''}Cancel anytime in Settings · Restore purchase
-        </Text>
-      </Pressable>
+      <Text style={s.fineprint}>
+        {trialDays > 0 ? `No charge during your ${trialDays}-day free trial. ` : ''}Cancel anytime in your iPhone's
+        Settings → Apple ID → Subscriptions.
+      </Text>
+      <View style={s.linkRow}>
+        <Pressable onPress={onRestore} disabled={busy} hitSlop={8}>
+          <Text style={s.legalLink}>Restore purchase</Text>
+        </Pressable>
+        <Pressable onPress={() => openLink(TERMS_URL)} hitSlop={8}>
+          <Text style={s.legalLink}>Terms of Use</Text>
+        </Pressable>
+        <Pressable onPress={() => openLink(PRIVACY_URL)} hitSlop={8}>
+          <Text style={s.legalLink}>Privacy Policy</Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
@@ -228,6 +270,14 @@ const s = StyleSheet.create({
   },
   errorTitle: { color: colors.text, fontSize: 14.5, fontFamily: font.bold },
   errorText: { color: colors.text2, fontSize: 12.5, fontFamily: font.regular, marginTop: 4, lineHeight: 18 },
+  errorDetail: {
+    color: colors.text3,
+    fontSize: 11,
+    fontFamily: font.regular,
+    marginTop: 8,
+    lineHeight: 16,
+  },
+  detailsToggle: { color: colors.text3, fontSize: 12, fontFamily: font.semibold, paddingRight: 4 },
   fineprint: {
     color: colors.text2,
     opacity: 0.75,
@@ -236,5 +286,12 @@ const s = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 17,
+  },
+  linkRow: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 },
+  legalLink: {
+    color: colors.text2,
+    fontSize: 11,
+    fontFamily: font.semibold,
+    textDecorationLine: 'underline',
   },
 });

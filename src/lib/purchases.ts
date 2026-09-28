@@ -40,9 +40,18 @@ if (!isExpoGo && RC_KEY) {
   }
 }
 
-/** True when purchases are simulated (Expo Go, no key, or the native module is missing). */
+/**
+ * Simulated purchases are a development convenience only. A store build that somehow lacks
+ * RevenueCat must fail closed (show an error) rather than hand out Keep Pro for free.
+ */
+const MOCK_ALLOWED = __DEV__ || isExpoGo;
+
+/** Thrown when the store can't be used at all; the paywall shows a friendly retry message. */
+class StoreUnavailableError extends Error {}
+
+/** True when purchases are simulated (Expo Go / development without RevenueCat). */
 export function purchasesAreMock(): boolean {
-  return !Purchases;
+  return !Purchases && MOCK_ALLOWED;
 }
 
 export type Plan = {
@@ -125,14 +134,16 @@ export function initPurchases(onEntitled: (entitled: boolean) => void): void {
  * error (see `describeError`) when the offering or its packages can't be loaded.
  */
 export async function getPlans(): Promise<Plan[]> {
-  if (!Purchases) return MOCK_PLANS;
   await ready;
-  if (!Purchases) return MOCK_PLANS; // init fell back to mock mode
+  if (!Purchases) {
+    if (MOCK_ALLOWED) return MOCK_PLANS;
+    throw new StoreUnavailableError('RevenueCat is not configured in this build (missing EXPO_PUBLIC_RC_API_KEY?).');
+  }
 
   const offerings = await Purchases.getOfferings();
   const current = offerings.current ?? Object.values(offerings.all)[0] ?? null;
   if (!current) {
-    throw new Error('No offering is marked "current" in the RevenueCat dashboard.');
+    throw new StoreUnavailableError('No offering is marked "current" in the RevenueCat dashboard.');
   }
 
   const annual = current.annual ?? findPackage(current, PRODUCT_IDS.yearly, /annual|year/i);
@@ -142,7 +153,7 @@ export async function getPlans(): Promise<Plan[]> {
   if (annual) plans.push(planFromPackage('yearly', annual, weekly));
   if (weekly) plans.push(planFromPackage('weekly', weekly));
   if (plans.length === 0) {
-    throw new Error(
+    throw new StoreUnavailableError(
       `Offering "${current.identifier}" has no yearly or weekly package. Check that ${PRODUCT_IDS.yearly} and ${PRODUCT_IDS.weekly} are attached to it in RevenueCat and approved in App Store Connect.`
     );
   }
@@ -223,11 +234,12 @@ export type PurchaseOutcome =
 
 export async function purchase(plan: Plan): Promise<PurchaseOutcome> {
   if (!Purchases) {
+    if (!MOCK_ALLOWED) throw new StoreUnavailableError('Purchase attempted without RevenueCat in a store build.');
     await new Promise((r) => setTimeout(r, 600));
-    return 'entitled'; // mock: grant entitlement locally
+    return 'entitled'; // development only: grant entitlement locally
   }
   if (!plan.rcPackage) {
-    throw new Error('This plan is not available from the App Store right now. Reload the plans and try again.');
+    throw new StoreUnavailableError('Plan has no RevenueCat package attached.');
   }
   try {
     const { customerInfo } = await Purchases.purchasePackage(plan.rcPackage);
@@ -244,9 +256,11 @@ export async function purchase(plan: Plan): Promise<PurchaseOutcome> {
 
 /** Returns true when the user ends up entitled. Throws on store/network failure. */
 export async function restore(): Promise<boolean> {
-  if (!Purchases) return false;
   await ready;
-  if (!Purchases) return false;
+  if (!Purchases) {
+    if (MOCK_ALLOWED) return false;
+    throw new StoreUnavailableError('Restore attempted without RevenueCat in a store build.');
+  }
   return isEntitled(await Purchases.restorePurchases());
 }
 
@@ -260,29 +274,37 @@ function isCancelled(e: unknown): boolean {
   return err?.userCancelled === true || errorCode(e) === Purchases?.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR;
 }
 
-/** Turns a RevenueCat/StoreKit error (or a plain Error) into a sentence worth showing. */
-export function describeError(e: unknown): string {
+export type StoreErrorMessage = {
+  /** Plain-language sentence safe to show any customer (and App Review). */
+  friendly: string;
+  /** Underlying StoreKit/RevenueCat detail, shown only behind "Show details". */
+  technical: string;
+};
+
+const UNAVAILABLE = "Subscriptions couldn't be loaded right now. Please try again in a moment.";
+
+/** Splits a RevenueCat/StoreKit error into a customer-facing sentence and the technical detail. */
+export function describeError(e: unknown): StoreErrorMessage {
   const err = e as (Partial<PurchasesError> & { message?: string }) | undefined;
   const codes = Purchases?.PURCHASES_ERROR_CODE;
   const code = errorCode(e);
   const label = err?.userInfo?.readableErrorCode ?? err?.readableErrorCode;
   const detail = err?.underlyingErrorMessage || err?.message || '';
+  const technical = [label ?? code, detail].filter(Boolean).join(': ') || 'No further detail.';
+
+  if (e instanceof StoreUnavailableError) return { friendly: UNAVAILABLE, technical };
 
   const known: Array<[string | undefined, string]> = codes
     ? [
-        [
-          codes.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR,
-          "This subscription isn't available from the App Store yet. In App Store Connect check the product's status and pricing, and that the Paid Apps agreement is signed.",
-        ],
-        [codes.CONFIGURATION_ERROR, `RevenueCat configuration problem. ${detail}`.trim()],
-        [codes.PAYMENT_PENDING_ERROR, 'Payment is awaiting approval (Ask to Buy). Access unlocks once it is approved.'],
-        [codes.NETWORK_ERROR, 'No connection. Check your network and try again.'],
-        [codes.OFFLINE_CONNECTION_ERROR, 'No connection. Check your network and try again.'],
-        [codes.STORE_PROBLEM_ERROR, 'The App Store had a problem. Try again in a moment.'],
-        [codes.PURCHASE_NOT_ALLOWED_ERROR, 'Purchases are not allowed on this device (Screen Time or parental restrictions).'],
+        [codes.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR, UNAVAILABLE],
+        [codes.CONFIGURATION_ERROR, UNAVAILABLE],
+        [codes.PAYMENT_PENDING_ERROR, "Your purchase is waiting for approval (Ask to Buy). Keep Pro unlocks as soon as it's approved."],
+        [codes.NETWORK_ERROR, "You're offline. Check your connection and try again."],
+        [codes.OFFLINE_CONNECTION_ERROR, "You're offline. Check your connection and try again."],
+        [codes.STORE_PROBLEM_ERROR, 'The App Store had a problem. Please try again in a moment.'],
+        [codes.PURCHASE_NOT_ALLOWED_ERROR, "Purchases aren't allowed on this device (Screen Time or parental restrictions)."],
       ]
     : [];
   const hit = code !== undefined ? known.find(([c]) => c === code) : undefined;
-  const msg = hit ? hit[1] : detail || 'Please try again.';
-  return label && !msg.includes(label) ? `${msg} (${label})` : msg;
+  return { friendly: hit ? hit[1] : 'Something went wrong. Please try again.', technical };
 }

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { Screen, GButton, GhostButton, Eyebrow, H1, Lede, BackButton, InsightCard } from '../components/ui';
 import { useStore } from '../store';
-import { syncEnabled, sendCode, verifyCode, pullState, pushState } from '../lib/sync';
+import { syncEnabled, sendCode, verifyCode, pullState, pushState, currentEmail } from '../lib/sync';
 import { track } from '../lib/analytics';
 import type { RootStackParamList } from '../nav';
 
@@ -23,19 +23,18 @@ export function SignInScreen({ navigation }: SignInProps) {
   const [stage, setStage] = useState<'email' | 'code'>('email');
   const [busy, setBusy] = useState(false);
   const hydrate = useStore((st) => st.hydrate);
-  const setEntitled = useStore((st) => st.setEntitled);
 
   if (!syncEnabled) {
     return (
       <Screen>
         <BackButton onPress={() => navigation.goBack()} />
         <Eyebrow style={{ marginTop: 14 }}>Accounts</Eyebrow>
-        <H1>No account needed yet</H1>
+        <H1>No account needed</H1>
         <Lede>
-          Keep stores your data privately on this device. Cloud backup and sign-in switch on once the backend keys are
-          configured.
+          Keep stores everything privately on this phone, so there's nothing to sign in to. Cloud backup is on the
+          way in a future update.
         </Lede>
-        <GButton title="Take the quiz instead" onPress={() => navigation.navigate('QuizMed')} style={{ marginTop: 24 }} />
+        <GButton title="Got it" onPress={() => navigation.goBack()} style={{ marginTop: 24 }} />
       </Screen>
     );
   }
@@ -64,15 +63,13 @@ export function SignInScreen({ navigation }: SignInProps) {
       await verifyCode(email.trim().toLowerCase(), code.trim());
       track('sign_in');
       const remote = await pullState();
-      if (remote && remote.profile) {
+      const remoteProfile = remote?.profile as { onboarded?: boolean } | undefined;
+      if (remote && remoteProfile?.onboarded) {
+        // A completed plan in the cloud wins: this is a returning user on a new or reset phone.
         hydrate(remote as Parameters<typeof hydrate>[0]);
-        const p = remote.profile as { onboarded?: boolean };
-        if (p.onboarded) {
-          setEntitled(true); // restored user; RevenueCat re-validates real entitlement on launch
-          navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-          return;
-        }
       } else {
+        // No usable backup yet, so this phone's data becomes the account's first backup.
+        // (Restoring a half-finished cloud profile here would wipe a plan the user just built.)
         const s = useStore.getState();
         await pushState({
           profile: s.profile,
@@ -81,7 +78,10 @@ export function SignInScreen({ navigation }: SignInProps) {
           weighIns: s.weighIns,
         });
       }
-      navigation.navigate(useStore.getState().profile.onboarded ? 'Home' : 'QuizMed');
+      // Access is decided by the App Store subscription on this Apple ID, never by the backup.
+      const st = useStore.getState();
+      const next = !st.profile.onboarded ? 'QuizMed' : st.entitled ? 'Home' : 'Paywall';
+      navigation.reset({ index: 0, routes: [{ name: next }] });
     } catch (e: any) {
       Alert.alert('Code not accepted', e?.message ?? 'Check the 6-digit code and try again.');
     } finally {
@@ -135,6 +135,65 @@ export function SignInScreen({ navigation }: SignInProps) {
     </Screen>
   );
 }
+
+type SaveProgressProps = NativeStackScreenProps<RootStackParamList, 'SaveProgress'>;
+
+/**
+ * Post-onboarding sign-up prompt, shown right after the paywall unlocks.
+ * Env-gated like sign-in: when Supabase keys are absent (or the user is already
+ * signed in) it forwards straight to Home so nothing half-built is ever shown.
+ */
+export function SaveProgressScreen({ navigation }: SaveProgressProps) {
+  const toHome = () => navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+
+  useEffect(() => {
+    if (!syncEnabled) {
+      toHome();
+      return;
+    }
+    // Already signed in: nothing to offer. Ignore the answer if the user has moved on meanwhile.
+    let active = true;
+    currentEmail().then((email) => {
+      if (active && email && navigation.isFocused()) toHome();
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!syncEnabled) return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
+
+  return (
+    <Screen>
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <View style={sp.iconWrap}>
+          <Ionicons name="cloud-done-outline" size={54} color={colors.blue} />
+        </View>
+        <Eyebrow style={{ textAlign: 'center', marginTop: 24 }}>One last thing</Eyebrow>
+        <H1 style={{ textAlign: 'center' }}>Back up your progress</H1>
+        <Lede style={{ textAlign: 'center' }}>
+          Create a free account so your plan, meals, and streaks survive a lost or new phone. One email, a 6-digit
+          code — no password.
+        </Lede>
+      </View>
+      <GButton title="Create account" onPress={() => navigation.navigate('SignIn')} />
+      <GhostButton title="Skip for now — you can do this later in Settings" onPress={toHome} />
+    </Screen>
+  );
+}
+
+const sp = StyleSheet.create({
+  iconWrap: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: colors.blueSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+});
 
 const s = StyleSheet.create({
   input: {

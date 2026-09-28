@@ -23,6 +23,7 @@ import { floorG, useStore } from '../store';
 import { DAY_LABELS } from '../lib/dates';
 import { weightAmount } from '../lib/units';
 import { track } from '../lib/analytics';
+import { syncEnabled } from '../lib/sync';
 import type { RootStackParamList } from '../nav';
 
 type P<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackParamList, T>;
@@ -65,7 +66,7 @@ function StatRingSlide() {
         The scale says you're losing. <Text style={{ color: colors.blue }}>Losing what?</Text>
       </Text>
       <Text style={s.slideSub}>
-        Keep makes sure the weight you lose on Ozempic, Zepbound, or Mounjaro is fat — not muscle.
+        Keep helps you protect your muscle on Ozempic, Zepbound, or Mounjaro — so more of what you lose is fat.
       </Text>
     </View>
   );
@@ -127,7 +128,7 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
                 bg={colors.blueSoft}
                 title="Point your camera."
                 accent="Protein counted."
-                sub="Scan any meal and hit your daily protein floor — the #1 lever that protects muscle."
+                sub="Scan any meal and hit your daily protein floor — a key habit for keeping muscle while you lose weight."
               />
             ) : (
               <IconSlide
@@ -157,7 +158,10 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
       </View>
       <FadeSlideIn delay={240}>
         <GButton title="Get started" onPress={() => navigation.navigate('QuizMed')} />
-        <GhostButton title="I already have an account" onPress={() => navigation.navigate('SignIn')} />
+        {/* No accounts exist while cloud backup is switched off, so there is nothing to sign in to. */}
+        {syncEnabled ? (
+          <GhostButton title="I already have an account" onPress={() => navigation.navigate('SignIn')} />
+        ) : null}
       </FadeSlideIn>
     </Screen>
   );
@@ -201,6 +205,8 @@ export function QuizMedScreen({ navigation }: P<'QuizMed'>) {
 export function QuizShotScreen({ navigation }: P<'QuizShot'>) {
   const profile = useStore((st) => st.profile);
   const setProfile = useStore((st) => st.setProfile);
+  // Nothing is pre-selected: the stored default must not show as an answer the user never gave.
+  const [picked, setPicked] = useState(false);
   return (
     <Screen>
       <BackButton onPress={() => navigation.goBack()} />
@@ -213,8 +219,14 @@ export function QuizShotScreen({ navigation }: P<'QuizShot'>) {
           {DAY_LABELS.map((d, i) => (
             <Pressable
               key={d}
-              onPress={() => setProfile({ shotDay: i })}
-              style={[s.chip, profile.shotDay === i && { borderColor: colors.blue, backgroundColor: colors.blueSoft }]}
+              onPress={() => {
+                setProfile({ shotDay: i });
+                setPicked(true);
+              }}
+              style={[
+                s.chip,
+                picked && profile.shotDay === i && { borderColor: colors.blue, backgroundColor: colors.blueSoft },
+              ]}
             >
               <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.semibold }}>{d}</Text>
             </Pressable>
@@ -223,7 +235,8 @@ export function QuizShotScreen({ navigation }: P<'QuizShot'>) {
       </FadeSlideIn>
       <View style={{ marginTop: 'auto' }}>
         <GButton
-          title="Continue"
+          title={picked ? 'Continue' : 'Pick your shot day'}
+          disabled={!picked}
           onPress={() => {
             track('quiz_step', { step: 2 });
             navigation.navigate('QuizWeight');
@@ -358,19 +371,15 @@ const COMPUTE_LINES = [
 
 export function ComputingScreen({ navigation }: P<'Computing'>) {
   const [line, setLine] = useState(0);
+  // One timer per step. Navigation happens here, never inside a state updater: React may run
+  // updaters during render, and navigating from there triggers "Cannot update a component".
   useEffect(() => {
-    const iv = setInterval(() => {
-      setLine((l) => {
-        if (l + 1 >= COMPUTE_LINES.length) {
-          clearInterval(iv);
-          navigation.replace('Reveal');
-          return l;
-        }
-        return l + 1;
-      });
+    const t = setTimeout(() => {
+      if (line + 1 >= COMPUTE_LINES.length) navigation.replace('Reveal');
+      else setLine(line + 1);
     }, 850);
-    return () => clearInterval(iv);
-  }, [navigation]);
+    return () => clearTimeout(t);
+  }, [line, navigation]);
 
   return (
     <Screen style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -421,8 +430,8 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
         <View style={s.warnNote}>
           <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, lineHeight: 20 }}>
             <Text style={{ color: colors.amber, fontFamily: font.bold }}>Why it matters: </Text>
-            clinical studies show up to 40% of weight lost on GLP-1s can be lean mass. Hitting your protein floor is the
-            #1 lever to keep it fat-only.
+            clinical studies show up to 40% of weight lost on GLP-1s can be lean mass. Hitting your protein floor,
+            alongside strength training, is one of the best-supported ways to hold on to muscle.
           </Text>
         </View>
         <GButton title="See my 12-week projection" onPress={() => navigation.navigate('Projection')} style={{ marginTop: 24 }} />
@@ -435,7 +444,18 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
 
 export function ProjectionScreen({ navigation }: P<'Projection'>) {
   const profile = useStore((st) => st.profile);
+  const entitled = useStore((st) => st.entitled);
+  const setProfile = useStore((st) => st.setProfile);
   const unit = profile.unit;
+  const onContinue = () => {
+    // Someone who already subscribes (e.g. after "Reset app") skips the paywall.
+    if (entitled) {
+      setProfile({ onboarded: true });
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } else {
+      navigation.navigate('Paywall');
+    }
+  };
   const { lossDisp, riskDisp, safeDisp } = useMemo(() => {
     const lossLb = Math.round(profile.weightLb * 0.08);
     const riskLb = Math.max(4, Math.round(lossLb * 0.38));
@@ -462,7 +482,7 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
             <Text style={s.statV}>
               −{lossDisp} {unit}
             </Text>
-            <Text style={s.statK}>est. 12-week loss on your medication</Text>
+            <Text style={s.statK}>typical 12-week loss on a GLP-1</Text>
           </Card>
           <Card style={s.statChip}>
             <Text style={[s.statV, { color: colors.amber }]}>
@@ -477,7 +497,11 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
             <Text style={s.statK}>at your protein floor</Text>
           </Card>
         </View>
-        <GButton title="Protect my 12 weeks" onPress={() => navigation.navigate('Paywall')} style={{ marginTop: 24 }} />
+        <Text style={s.disclaimer}>
+          Illustrative estimate based on average results reported in GLP-1 clinical trials — not a medical prediction.
+          Your results will vary; talk to your prescriber about your goals.
+        </Text>
+        <GButton title={entitled ? 'Go to my plan' : 'Protect my 12 weeks'} onPress={onContinue} style={{ marginTop: 18 }} />
       </FadeSlideIn>
     </Screen>
   );
@@ -554,4 +578,12 @@ const s = StyleSheet.create({
   statChip: { flex: 1, padding: 12, alignItems: 'center' },
   statV: { color: colors.text, fontSize: 20, fontFamily: font.heavy, letterSpacing: -0.4 },
   statK: { color: colors.text2, fontSize: 10.5, fontFamily: font.regular, marginTop: 3, textAlign: 'center', lineHeight: 14 },
+  disclaimer: {
+    color: colors.text3,
+    fontSize: 11,
+    fontFamily: font.regular,
+    lineHeight: 16,
+    marginTop: 14,
+    textAlign: 'center',
+  },
 });

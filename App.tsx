@@ -26,7 +26,7 @@ import {
   RevealScreen,
   ProjectionScreen,
 } from './src/screens/OnboardingScreens';
-import { SignInScreen } from './src/screens/AuthScreens';
+import { SignInScreen, SaveProgressScreen } from './src/screens/AuthScreens';
 import { schedulePush } from './src/lib/sync';
 import { PaywallScreen } from './src/screens/PaywallScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -58,9 +58,10 @@ export default function App() {
   useEffect(() => {
     const unsubHydration = useStore.persist.onFinishHydration(() => setHydrated(true));
     if (useStore.persist.hasHydrated()) setHydrated(true);
+    // Last-resort gate: storage reads can't reject (see persistStorage), but a hung read must
+    // still never leave the user on a blank screen.
+    const gateTimer = setTimeout(() => setHydrated(true), 4000);
     initAnalytics();
-    // Keeps `entitled` in sync with RevenueCat: launch check, renewals, expiry, restores.
-    initPurchases((v) => useStore.getState().setEntitled(v));
     track('app_open');
     // Best-effort cloud backup on every local change (no-op when signed out).
     const unsub = useStore.subscribe((s) =>
@@ -74,8 +75,16 @@ export default function App() {
     return () => {
       unsub();
       unsubHydration();
+      clearTimeout(gateTimer);
     };
   }, []);
+
+  // RevenueCat starts only after the saved state has loaded: hydration overwrites `entitled`
+  // with the stored value, which would clobber a fresher answer from the store.
+  useEffect(() => {
+    if (!hydrated) return;
+    initPurchases((v) => useStore.getState().setEntitled(v));
+  }, [hydrated]);
 
   if (!fontsLoaded || !hydrated) {
     return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
@@ -107,6 +116,7 @@ export default function App() {
         <Stack.Screen name="Reveal" component={RevealScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Projection" component={ProjectionScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="SaveProgress" component={SaveProgressScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Guard" component={GuardScreen} />
         <Stack.Screen name="Streaks" component={StreaksScreen} />

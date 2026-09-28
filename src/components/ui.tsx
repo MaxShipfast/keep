@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -55,13 +57,21 @@ export function Screen({
       style={{ flex: 1 }}
       contentContainerStyle={[{ padding: 24, paddingBottom: 48 }, style]}
       showsVerticalScrollIndicator={false}
+      // Without this the first tap on a button while the keyboard is up only dismisses the keyboard.
+      keyboardShouldPersistTaps="handled"
     >
       {children}
     </ScrollView>
   ) : (
     <View style={[{ flex: 1, padding: 24 }, style]}>{children}</View>
   );
-  return <SafeAreaView style={{ flex: 1, backgroundColor: colors.ground }}>{inner}</SafeAreaView>;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.ground }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {inner}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
 
 export function GButton({
@@ -76,7 +86,13 @@ export function GButton({
   disabled?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={({ pressed }) => [{ opacity: pressed || disabled ? 0.85 : 1 }, style]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
+      style={({ pressed }) => [{ opacity: disabled ? 0.45 : pressed ? 0.85 : 1 }, style]}
+    >
       <LinearGradient colors={gradients.cta} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.cta}>
         <Text style={s.ctaText}>{title}</Text>
       </LinearGradient>

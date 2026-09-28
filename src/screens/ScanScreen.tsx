@@ -1,9 +1,21 @@
-import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
 import { GButton, GhostButton } from '../components/ui';
@@ -14,9 +26,14 @@ import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 
+const MAX_MANUAL_G = 300;
+
 export function ScanScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const camRef = useRef<CameraView>(null);
+  const mounted = useRef(true);
+  const logging = useRef(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [manual, setManual] = useState(false);
@@ -28,6 +45,13 @@ export function ScanScreen({ navigation }: Props) {
   const floor = floorG(state.profile.weightLb);
   const current = todayProtein(state);
 
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
+  );
+
   const capture = async () => {
     if (busy || !camRef.current) return;
     setBusy(true);
@@ -36,6 +60,8 @@ export function ScanScreen({ navigation }: Props) {
       if (!photo?.uri) throw new Error('No image captured');
       const base64 = await prepareForUpload(photo.uri, photo.width, photo.height);
       const r = await scanMeal(base64);
+      // The user may have closed the scanner while the photo was being analyzed.
+      if (!mounted.current) return;
       if (isNotFood(r)) {
         Alert.alert("Couldn't find food", 'Get closer so the plate fills the frame, or type the meal instead.');
         return;
@@ -44,13 +70,16 @@ export function ScanScreen({ navigation }: Props) {
       track('scan_complete', { protein: r.proteinG, mock: scanIsMock });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (e: any) {
-      Alert.alert('Scan failed', e?.message ?? 'Try again, or log the meal manually.');
+      if (mounted.current) Alert.alert('Scan failed', e?.message ?? 'Try again, or type the meal instead.');
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   };
 
   const log = (name: string, proteinG: number, extra?: Partial<ScanResult>) => {
+    // A fast double tap must not log the meal twice (or pop two screens).
+    if (logging.current) return;
+    logging.current = true;
     logMeal({
       name,
       proteinG,
@@ -62,18 +91,43 @@ export function ScanScreen({ navigation }: Props) {
     navigation.goBack();
   };
 
+  const manualEntry = (
+    <ManualEntry
+      {...{ manualName, setManualName, manualG, setManualG, log }}
+      onCancel={() => setManual(false)}
+    />
+  );
+
   if (!permission) return <View style={s.root} />;
 
   if (!permission.granted) {
+    // After one denial iOS never shows the prompt again; only Settings can re-enable it.
+    const blocked = !permission.canAskAgain;
     return (
-      <View style={[s.root, { padding: 24, justifyContent: 'center' }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[s.root, { padding: 24, paddingTop: insets.top + 24, justifyContent: 'center' }]}
+      >
         <Text style={s.title}>Camera access</Text>
-        <Text style={s.sub}>Keep uses the camera for one thing: pointing it at food to count protein.</Text>
-        <GButton title="Allow camera" onPress={requestPermission} style={{ marginTop: 20 }} />
-        <GhostButton title="Type the meal instead" onPress={() => setManual(true)} />
-        {manual ? <ManualEntry {...{ manualName, setManualName, manualG, setManualG, log }} /> : null}
+        <Text style={s.sub}>
+          {blocked
+            ? 'Camera access is turned off for Keep. Turn it on in Settings to scan meals, or type the meal instead.'
+            : 'Keep uses the camera for one thing: pointing it at food to count protein.'}
+        </Text>
+        {manual ? (
+          manualEntry
+        ) : (
+          <>
+            <GButton
+              title={blocked ? 'Open Settings' : 'Allow camera'}
+              onPress={blocked ? () => Linking.openSettings() : requestPermission}
+              style={{ marginTop: 20 }}
+            />
+            <GhostButton title="Type the meal instead" onPress={() => setManual(true)} />
+          </>
+        )}
         <GhostButton title="Close" onPress={() => navigation.goBack()} />
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -82,27 +136,41 @@ export function ScanScreen({ navigation }: Props) {
   return (
     <View style={s.root}>
       <CameraView ref={camRef} style={StyleSheet.absoluteFill} facing="back" />
-      <Pressable onPress={() => navigation.goBack()} style={s.close}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        style={[s.close, { top: insets.top + 12 }]}
+        hitSlop={8}
+        accessibilityLabel="Close scanner"
+      >
         <Ionicons name="close" size={18} color={colors.text2} />
       </Pressable>
 
       {!result ? (
-        <View style={s.bottomBar}>
-          {scanIsMock ? <Text style={s.mockNote}>Demo mode — backend key not configured yet</Text> : null}
-          {busy ? <Text style={s.mockNote}>Counting protein…</Text> : null}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={s.bottomLayer}
+          pointerEvents="box-none"
+        >
           {manual ? (
-            <ManualEntry {...{ manualName, setManualName, manualG, setManualG, log }} />
+            <View style={[s.manualSheet, { paddingBottom: insets.bottom + 16 }]}>{manualEntry}</View>
           ) : (
-            <>
-              <Pressable onPress={capture} style={s.shutter} disabled={busy}>
+            <View style={[s.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+              {__DEV__ && scanIsMock ? <Text style={s.hint}>Demo mode — scan backend not configured</Text> : null}
+              {busy ? <Text style={s.hint}>Counting protein…</Text> : null}
+              <Pressable
+                onPress={capture}
+                style={s.shutter}
+                disabled={busy}
+                accessibilityLabel="Take photo of meal"
+              >
                 {busy ? <ActivityIndicator color="#fff" /> : <View style={s.shutterInner} />}
               </Pressable>
               <GhostButton title="Type it instead" onPress={() => setManual(true)} />
-            </>
+            </View>
           )}
-        </View>
+        </KeyboardAvoidingView>
       ) : (
-        <View style={s.sheet}>
+        <View style={[s.sheet, { paddingBottom: insets.bottom + 20 }]}>
           <View style={s.grab} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1 }}>
@@ -176,20 +244,32 @@ function ManualEntry({
   manualG,
   setManualG,
   log,
+  onCancel,
 }: {
   manualName: string;
   setManualName: (v: string) => void;
   manualG: string;
   setManualG: (v: string) => void;
   log: (name: string, g: number) => void;
+  onCancel: () => void;
 }) {
+  const name = manualName.trim();
+  const grams = Math.round(parseFloat(manualG.replace(',', '.')));
+  const gramsValid = Number.isFinite(grams) && grams >= 1 && grams <= MAX_MANUAL_G;
+  const valid = name.length > 0 && gramsValid;
+  const hint =
+    manualG.trim() && !gramsValid ? `Enter protein between 1 and ${MAX_MANUAL_G} grams` : null;
+
   return (
     <View style={{ width: '100%', gap: 10, marginTop: 8 }}>
+      <Text style={s.manualTitle}>Log a meal</Text>
       <TextInput
         placeholder="What did you eat?"
         placeholderTextColor={colors.text3}
         value={manualName}
         onChangeText={setManualName}
+        returnKeyType="next"
+        maxLength={60}
         style={s.input}
       />
       <TextInput
@@ -197,17 +277,13 @@ function ManualEntry({
         placeholderTextColor={colors.text3}
         value={manualG}
         onChangeText={setManualG}
-        keyboardType="number-pad"
+        keyboardType="decimal-pad"
+        maxLength={5}
         style={s.input}
       />
-      <GButton
-        title="Log it"
-        onPress={() => {
-          const g = parseInt(manualG, 10);
-          if (!manualName || !g) return;
-          log(manualName, g);
-        }}
-      />
+      {hint ? <Text style={s.hintWarn}>{hint}</Text> : null}
+      <GButton title={valid ? `Log ${grams}g protein` : 'Log it'} disabled={!valid} onPress={() => log(name, grams)} />
+      <GhostButton title="Cancel" onPress={onCancel} />
     </View>
   );
 }
@@ -227,7 +303,6 @@ const s = StyleSheet.create({
   sub: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 8, lineHeight: 21 },
   close: {
     position: 'absolute',
-    top: 62,
     right: 20,
     zIndex: 30,
     width: 36,
@@ -237,8 +312,20 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottomBar: { position: 'absolute', bottom: 40, left: 24, right: 24, alignItems: 'center', gap: 6 },
-  mockNote: { color: colors.text2, fontSize: 11, fontFamily: font.regular, opacity: 0.8 },
+  bottomLayer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end' },
+  bottomBar: { paddingHorizontal: 24, alignItems: 'center', gap: 6 },
+  manualSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderTopWidth: 1,
+    borderColor: colors.lineStrong,
+    paddingHorizontal: 22,
+    paddingTop: 14,
+  },
+  manualTitle: { color: colors.text, fontSize: 17, fontFamily: font.heavy },
+  hint: { color: colors.text2, fontSize: 11, fontFamily: font.regular, opacity: 0.8 },
+  hintWarn: { color: colors.amber, fontSize: 12, fontFamily: font.regular },
   shutter: {
     width: 74,
     height: 74,
@@ -260,7 +347,6 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: colors.lineStrong,
     padding: 22,
-    paddingBottom: 34,
   },
   grab: { width: 38, height: 4, borderRadius: 2, backgroundColor: colors.lineStrong, alignSelf: 'center', marginBottom: 18 },
   conf: {
@@ -281,7 +367,7 @@ const s = StyleSheet.create({
     borderColor: 'rgba(61,123,255,0.3)',
   },
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 12,
