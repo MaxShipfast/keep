@@ -92,11 +92,16 @@ Ozempic® and Wegovy® are registered trademarks of Novo Nordisk A/S. Mounjaro®
 | Build | the newest 1.0.1 build (it must include the AI-consent prompt, see section 9) |
 | Version release | Manually release (recommended, so you pick launch day) |
 
-### Screenshots (iPhone 6.9" Display slot)
+### Screenshots (one iPhone set is enough)
 
-Upload `store-screenshots/01.png` … `06.png` in this order. They are 1320×2868, opaque RGB PNGs.
-App Store Connect scales them down for every smaller iPhone. No iPad set is needed
-(`supportsTablet: false`).
+Upload `01.png` … `06.png` in this order. Use the set that matches the slot App Store Connect shows:
+
+- **iPhone 6.9" Display:** `store-screenshots/01…06.png` (1320×2868)
+- **iPhone 6.5" Display:** `store-screenshots/6.5-inch/01…06.png` (1284×2778). The 6.5" slot
+  rejects 6.9" files with a "dimensions are wrong" error.
+
+All are opaque RGB PNGs. App Store Connect scales them down for every smaller iPhone. No iPad set
+is needed (`supportsTablet: false`).
 
 | # | Caption | Screen shown |
 |---|---|---|
