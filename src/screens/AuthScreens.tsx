@@ -120,7 +120,8 @@ export function SavePlanScreen({ navigation }: SavePlanProps) {
 
   const nothingToOffer = !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled);
   useEffect(() => {
-    if (nothingToOffer && (signedIn !== null || !syncEnabled) && (apple !== null || !syncEnabled)) toReveal();
+    // Signed in already: leave at once. Otherwise wait until both checks have answered.
+    if (nothingToOffer && (!syncEnabled || signedIn === true || (signedIn !== null && apple !== null))) toReveal();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nothingToOffer, signedIn, apple]);
 
@@ -187,6 +188,11 @@ export function SignInScreen({ navigation, route }: SignInProps) {
     const to = !st.profile.onboarded ? 'QuizMed' : st.entitled ? 'Home' : 'Paywall';
     navigation.reset({ index: 0, routes: [{ name: to }] });
   };
+
+  // Apple is the only door while email is off: show nothing until we know whether it exists.
+  if (syncEnabled && apple === null && !emailSignInEnabled) {
+    return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
+  }
 
   if (!syncEnabled || (apple === false && !emailSignInEnabled)) {
     return (
@@ -323,7 +329,7 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
 
   const nothingToOffer = !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled);
   useEffect(() => {
-    if (nothingToOffer && (signedIn !== null || !syncEnabled) && (apple !== null || !syncEnabled)) toHome();
+    if (nothingToOffer && (!syncEnabled || signedIn === true || (signedIn !== null && apple !== null))) toHome();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nothingToOffer, signedIn, apple]);
 
