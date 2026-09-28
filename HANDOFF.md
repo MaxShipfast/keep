@@ -192,11 +192,22 @@ Gotchas learned the hard way:
 1. Protein floor = `round(kg × 1.4 / 2) × 2` grams. Framing is always "clinical guidance, confirm
    with your doctor" — never medical advice, never dosing guidance anywhere in the app.
 2. Guard score = 60% floor-days/7 + 25% min(lifts,3)/3 + 15% pace (full marks ≤1.25%/wk loss,
-   scaled penalty above, floor of 5; benefit of the doubt with <2 weigh-ins).
+   scaled penalty above, floor of 5; full marks until a pace exists). Each part is rounded on its
+   own and the score is their sum (`guardBreakdown` in `store.ts`) — never derive a part by
+   subtraction, or the Guard screen shows impossible values like 16/15.
 3. Streaks: shot-day never breaks a streak; an unfinished today never breaks a streak. Grace days
    don't *count* toward the streak either — they're neutral.
 4. Weights stored in **lb** always; `profile.unit` is presentation-only and must be respected on
-   every surface (projection, settings, weigh-in input).
+   every surface (projection, settings, weigh-in input). One weigh-in per day (a re-weigh replaces
+   it); loss pace only compares weigh-ins at least 3 days apart.
 5. Paywall is hard (no free tier, no close button). Restore purchase must stay visible. No
    fabricated social proof — the ★rating was removed deliberately; only reinstate with real data.
+   Don't promise things the app doesn't do (the old "we remind you" trial row had no notification
+   behind it). Store errors show plain language; technical detail stays behind "Show details".
+   Mock purchases exist only in `__DEV__`/Expo Go — store builds fail closed.
 6. Meal photos are transient: never stored server-side; privacy policy language depends on this.
+7. Dates are always **local** (`dateKey()` in `lib/dates.ts`) — never `toISOString()`, which is
+   the UTC date and puts meals on the wrong day for most of the world for part of every day.
+8. Persisted state must load safely: new `Profile` fields need a default in `defaultProfile`
+   (the persist `merge` layers old saves over it), and storage errors resolve to defaults.
+9. "Reset app" wipes the plan and logs, never the subscription (that belongs to the Apple ID).
