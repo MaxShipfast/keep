@@ -118,19 +118,48 @@ Search results show only the first three, so 1–3 carry the whole promise → s
 
 Sign-in required: **No**. Contact: your name, phone, and `info@shipfast.agency`.
 
-Notes:
+Apple asked (29 Sep 2026) for a screen recording plus the six answers below, both in a reply and
+in the **Notes** field for every future submission. Keep this text in Notes (3346 of 4,000
+characters) and attach the recording under App Review Information → Attachment.
 
 ```
-Keep is a consumer nutrition tracker for people taking GLP-1 medications. It logs protein and gives general nutrition information. It does not diagnose, treat, or give medication or dosing guidance, and it is not a medical device. No account or login is required.
+Hello, and thank you for reviewing Keep. Here is the information you requested. We have also added it to the App Review Notes.
 
-How to review:
-1. Launch the app and answer the setup questions (any answers work).
-2. After the plan preview, the Keep Pro paywall appears. The subscriptions keep_pro_yearly (3-day free trial) and keep_pro_weekly are submitted with this version; please subscribe with a Sandbox account.
-3. On the home screen, tap "Scan a meal" and point the camera at any food. The first time you tap the shutter, Keep asks permission to send the photo to OpenAI for analysis (guideline 5.1.2(i)); tap Allow. An estimate appears within a few seconds. Without food nearby, tap "Type it instead" to log a meal manually.
-4. Tap the Muscle Guard card for the score breakdown, and the streak card for streaks and shields. Settings has subscription management, the privacy policy, and the terms of use.
+1. Screen recording
+Attached is a screen recording from an iPhone running the latest iOS, using the submitted build (1.0.1, build 6). It starts at app launch and shows onboarding, the Keep Pro subscription purchase, meal scanning and logging, the Muscle Guard score, streaks, and Settings. Keep has no account registration or login and no user-generated content, so there are no account, deletion, or reporting flows to show.
 
-Data: the plan, meals, and weigh-ins are stored only on the device. Meal photos leave the device only after the user allows it; they are sent over HTTPS to our server and OpenAI for analysis and are not stored by us.
+2. Purpose and audience
+Keep is a nutrition tracker for adults taking GLP-1 weight-loss medications (semaglutide or tirzepatide). These medications suppress appetite, and studies report that up to 40% of the weight lost can be lean mass. Keep helps users eat enough protein to protect muscle: it sets a personal daily protein target from published guidance (1.4 g per kg of body weight), estimates the protein in a meal from a photo, and sums up weekly habits (protein, strength training, rate of weight loss) in one score. It is informational only. It does not diagnose, treat, or give medication or dosing advice, and it reminds users to follow their prescriber.
+
+3. How to review (no login needed)
+- Launch the app and answer the five setup questions (any answers work).
+- After the plan and the 12-week projection, the Keep Pro paywall appears. Subscribe with a Sandbox account: keep_pro_yearly has a 3-day free trial, keep_pro_weekly has none. "Restore purchase" is on the same screen.
+- On the home screen, tap "Scan a meal" and allow camera access. The first time you tap the shutter, Keep asks permission to send the photo to OpenAI for analysis; tap Allow. Point the camera at any food (a photo of food on another screen also works). Without food, tap "Type it instead" to log a meal by hand.
+- Tap the Muscle Guard card for the score breakdown, and the streak card for streaks.
+- Settings has subscription management, the privacy policy, and the terms of use.
+No credentials or sample files are needed.
+
+4. External services
+- Apple In-App Purchase (StoreKit): payment for the Keep Pro subscription.
+- RevenueCat: manages subscription status.
+- OpenAI API: estimates nutrition from meal photos. After the user allows it, the photo goes from the app to our own server and then to OpenAI. We don't store photos, and they aren't used to train AI models.
+- Cloudflare Workers: our server for scan requests, and hosting for the privacy policy, terms, and support pages.
+Keep has no accounts, analytics, or advertising SDKs. All other data stays on the device.
+
+5. Regional differences
+The app works the same in every region. It is English only. The weight unit defaults to pounds or kilograms based on the device region, and users can pick either during setup. Apple sets subscription prices per storefront.
+
+6. Regulated industry and third-party material
+Keep is a consumer nutrition-tracking app, not a healthcare service. It is not a medical device (declared in App Store Connect), and it does not provide diagnosis, treatment, prescriptions, or dosing guidance, or sell or supply medication. Medication names appear only so users can say which medication they take. Keep is not affiliated with Novo Nordisk or Eli Lilly and uses no third-party logos or licensed content.
+
+Thank you.
 ```
+
+Recording checklist (physical iPhone on the latest iOS, the same build as the submission):
+delete the app, reinstall it from TestFlight, start Screen Recording, then launch Keep. Show the
+setup questions, plan, projection, paywall, the sandbox purchase, a meal scan (camera permission,
+the "Scan with AI?" prompt, the result, logging it), the Muscle Guard and streak screens, and
+Settings.
 
 ## 4. In-app purchases (Monetization → Subscriptions → "Keep Pro" group)
 
