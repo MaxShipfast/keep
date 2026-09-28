@@ -107,34 +107,44 @@ repositioning, then kill.
 
 ## Accounts & cloud backup (Supabase)
 
-Optional accounts via email one-time code, with the user's full state backed up to one JSONB row.
-No Google/Apple SSO by design: first-party email codes don't trigger Apple's Sign-in-with-Apple
-requirement. Without the env keys the app stays local-first and the sign-in screen says so.
+Optional accounts. Sign in with Apple is the main door; email one-time codes are the fallback and
+stay off until a custom SMTP sender exists (`EXPO_PUBLIC_EMAIL_SIGNIN=1` turns them on). Without
+`EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` the app stays local-first.
 
-Setup: create a free project at supabase.com → Auth → Email provider: enable "Email OTP".
-Then run this SQL (SQL editor):
+Where the account ask sits: right after the plan is built and before it is revealed ("Save your
+plan", with "Not now"), and again after purchase for anyone who skipped. Capturing accounts before
+the paywall is what makes abandoned-paywall email possible.
 
-```sql
-create table public.user_state (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  data jsonb not null,
-  updated_at timestamptz not null default now()
-);
-alter table public.user_state enable row level security;
-create policy "own row" on public.user_state
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+Everything server-side is code in `supabase/`:
+
+- `migrations/…_accounts.sql`: `user_state` (the app state as one JSONB row per user),
+  `profiles` (email, first name, marketing opt-in, signup source, country, first paywall view, Pro
+  status) and `delete_account()`, which deletes the auth user and cascades. RLS: owner-only.
+- `config.toml`: Sign in with Apple (bundle IDs `com.maxwellzhou.keepapp` and Expo Go's
+  `host.exp.Exponent`), and the sign-in code email in `templates/code.html`.
+
+Set up or update a project:
+
+```
+npx supabase login                               # once per machine
+npx supabase link --project-ref <ref>
+npx supabase db push                             # tables, policies, functions
+npx supabase config push                         # auth settings and email template
 ```
 
-Fill `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`.
+Then put the project URL and anon key in `eas.json` (`EXPO_PUBLIC_SUPABASE_URL`,
+`EXPO_PUBLIC_SUPABASE_ANON_KEY`).
 
-**Before shipping accounts to the App Store:** Apple requires in-app account *deletion*.
-Settings has "Delete cloud backup" (deletes the data row); full auth-record deletion needs a tiny
-edge function calling `auth.admin.deleteUser` — add it before submitting a build with Supabase
-keys baked in, or ship v1 without the keys (accounts off) and enable in v1.1.
+Rules that keep App Review and paying users happy:
+
+- Accounts are optional everywhere; access is decided by the App Store subscription, never by the
+  account.
+- "Delete account" in Settings must keep calling `delete_account()` (guideline 5.1.1(v)).
+- Never call RevenueCat `logOut()` on sign-out: it starts an anonymous customer without the
+  receipt and locks a paying user out until they tap Restore.
 
 ## v1.1 backlog (deliberately not in v1)
 
 - HealthKit sync (auto lifts from Apple Watch, weight from smart scales) — needs dev build + plugin
-- Real auth + cloud sync (Supabase; Apple + Google SSO — Apple requires Sign in with Apple if Google is offered)
 - Weekly "Muscle Report" push notification
 - Advanced nutrition toggle (carbs/fat targets — data already captured per scan)

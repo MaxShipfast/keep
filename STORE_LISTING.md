@@ -226,3 +226,21 @@ doesn't give treatment guidance. The Terms of Use set no minimum age, so no over
   different mark and low risk, but don't drift toward "Defense" wording.
 - **Health claims.** Keep the "can be" hedge on the 40% lean-mass figure, and never show results or
   ratings you can't verify. The projection screenshot keeps its in-app disclaimer visible.
+
+## 11. When accounts ship (version 1.1)
+
+Accounts live on the `accounts` branch. Before submitting a build that includes them:
+
+- **App Privacy:** add three data types, all **linked to the user** and **not used for tracking**:
+
+  | Data type | Purposes |
+  |---|---|
+  | Contact Info → Email Address | App Functionality, Developer's Advertising or Marketing |
+  | Health & Fitness → Fitness (weight, meals and lifts in the cloud backup) | App Functionality |
+  | Identifiers → User ID | App Functionality |
+
+  Also change Purchases → Purchase History to **linked**, because RevenueCat now uses the account ID.
+- **Privacy policy:** deploy the accounts version of the privacy policy from the backend's
+  `accounts` branch at the same time.
+- **Review notes:** add "Sign in with Apple is optional (Save your plan → Not now skips it). To
+  delete an account: Settings → Delete account."

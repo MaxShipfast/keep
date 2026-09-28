@@ -7,7 +7,7 @@ import { Screen, Eyebrow, H1, BackButton } from '../components/ui';
 import { useStore, floorG } from '../store';
 import { DAY_FULL } from '../lib/dates';
 import { formatWeight } from '../lib/units';
-import { syncEnabled, currentEmail, signOut, deleteRemoteData } from '../lib/sync';
+import { syncEnabled, currentEmail, signOut, deleteAccount } from '../lib/sync';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -54,7 +54,10 @@ export function SettingsScreen({ navigation }: Props) {
           <>
             <View style={s.row}>
               <Text style={s.rowKey}>Signed in</Text>
-              <Text style={s.rowVal}>{email}</Text>
+              <Text style={s.rowVal} numberOfLines={1}>
+                {/* Apple's relay address means nothing to the user. */}
+                {email.endsWith('@privaterelay.appleid.com') ? 'with Apple' : email}
+              </Text>
             </View>
             <Pressable
               style={[s.row, { borderTopWidth: 0 }]}
@@ -68,25 +71,33 @@ export function SettingsScreen({ navigation }: Props) {
             <Pressable
               style={[s.row, { borderTopWidth: 0 }]}
               onPress={() =>
-                Alert.alert('Delete cloud backup?', 'Removes your backed-up data from our servers. Data on this phone stays.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Delete backup',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await deleteRemoteData();
-                      await signOut();
-                      setEmail(null);
+                Alert.alert(
+                  'Delete your account?',
+                  'This permanently deletes your account and the backup of your plan, meals and weigh-ins from our servers. Data on this phone stays. Your subscription is billed by Apple: cancel it separately in Settings > Subscriptions.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Delete account',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await deleteAccount();
+                          setEmail(null);
+                          Alert.alert('Account deleted', 'Your account and backup are gone from our servers.');
+                        } catch (e: any) {
+                          Alert.alert("Couldn't delete the account", e?.message ?? 'Check your connection and try again.');
+                        }
+                      },
                     },
-                  },
-                ])
+                  ]
+                )
               }
             >
-              <Text style={[s.rowKey, { color: '#FF6B6B' }]}>Delete cloud backup</Text>
+              <Text style={[s.rowKey, { color: '#FF6B6B' }]}>Delete account</Text>
             </Pressable>
           </>
         ) : (
-          <Pressable style={s.row} onPress={() => navigation.navigate('SignIn')}>
+          <Pressable style={s.row} onPress={() => navigation.navigate('SignIn', { source: 'settings' })}>
             <Text style={s.rowKey}>Sign in to back up your data</Text>
             <Text style={s.rowVal}>›</Text>
           </Pressable>

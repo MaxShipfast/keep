@@ -36,6 +36,7 @@
     },
     "plugins": [
       "expo-font",
+      "expo-apple-authentication",
       [
         "expo-camera",
         {

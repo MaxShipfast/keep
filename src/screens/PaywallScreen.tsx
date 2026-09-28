@@ -14,7 +14,7 @@ import {
   type Plan,
   type StoreErrorMessage,
 } from '../lib/purchases';
-import { syncEnabled } from '../lib/sync';
+import { markPaywallSeen, syncEnabled } from '../lib/sync';
 import { track } from '../lib/analytics';
 import type { RootStackParamList } from '../nav';
 
@@ -56,6 +56,7 @@ export function PaywallScreen({ navigation }: Props) {
 
   useEffect(() => {
     track('paywall_view');
+    markPaywallSeen().catch(() => {});
     loadPlans();
   }, [loadPlans]);
 

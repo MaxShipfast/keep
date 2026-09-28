@@ -1,6 +1,14 @@
 export type RootStackParamList = {
   Welcome: undefined;
-  SignIn: undefined;
+  SignIn:
+    | {
+        source: import('./lib/sync').SignupSource;
+        /** Where to go after signing in; defaults to wherever the saved state says the user belongs. */
+        next?: 'Reveal' | 'Home';
+        marketingOptIn?: boolean;
+      }
+    | undefined;
+  SavePlan: undefined;
   QuizMed: undefined;
   QuizShot: undefined;
   QuizWeight: undefined;

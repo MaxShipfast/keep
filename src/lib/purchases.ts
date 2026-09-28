@@ -130,6 +130,34 @@ export function initPurchases(onEntitled: (entitled: boolean) => void): void {
 }
 
 /**
+ * Ties the RevenueCat customer to the Keep account, so the subscription follows the account and
+ * email tools can match purchase events to it. Best-effort: access never depends on this.
+ */
+export async function linkPurchasesUser(userId: string, email: string | null): Promise<void> {
+  const rc = Purchases;
+  if (!rc) return;
+  await ready;
+  try {
+    await rc.logIn(userId);
+    if (email) await rc.setEmail(email);
+  } catch {
+    // Access still comes from the App Store receipt on this Apple ID.
+  }
+}
+
+/** Removes the email from the RevenueCat customer when the account is deleted. */
+export async function clearPurchasesEmail(): Promise<void> {
+  const rc = Purchases;
+  if (!rc) return;
+  await ready;
+  try {
+    await rc.setEmail(null);
+  } catch {
+    // Nothing to clean up if RevenueCat is unreachable; the next sign-in overwrites it.
+  }
+}
+
+/**
  * Loads the plans to show. Mock mode returns fixed copy; live mode throws a readable
  * error (see `describeError`) when the offering or its packages can't be loaded.
  */

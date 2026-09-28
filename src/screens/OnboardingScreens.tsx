@@ -160,7 +160,7 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
         <GButton title="Get started" onPress={() => navigation.navigate('QuizMed')} />
         {/* No accounts exist while cloud backup is switched off, so there is nothing to sign in to. */}
         {syncEnabled ? (
-          <GhostButton title="I already have an account" onPress={() => navigation.navigate('SignIn')} />
+          <GhostButton title="I already have an account" onPress={() => navigation.navigate('SignIn', { source: 'welcome' })} />
         ) : null}
       </FadeSlideIn>
     </Screen>
@@ -375,7 +375,7 @@ export function ComputingScreen({ navigation }: P<'Computing'>) {
   // updaters during render, and navigating from there triggers "Cannot update a component".
   useEffect(() => {
     const t = setTimeout(() => {
-      if (line + 1 >= COMPUTE_LINES.length) navigation.replace('Reveal');
+      if (line + 1 >= COMPUTE_LINES.length) navigation.replace(syncEnabled ? 'SavePlan' : 'Reveal');
       else setLine(line + 1);
     }, 850);
     return () => clearTimeout(t);

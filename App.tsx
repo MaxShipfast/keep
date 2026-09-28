@@ -26,8 +26,8 @@ import {
   RevealScreen,
   ProjectionScreen,
 } from './src/screens/OnboardingScreens';
-import { SignInScreen, SaveProgressScreen } from './src/screens/AuthScreens';
-import { schedulePush } from './src/lib/sync';
+import { SignInScreen, SavePlanScreen, SaveProgressScreen } from './src/screens/AuthScreens';
+import { schedulePush, recordPro, watchAppleRevocation } from './src/lib/sync';
 import { PaywallScreen } from './src/screens/PaywallScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { GuardScreen } from './src/screens/GuardScreen';
@@ -64,16 +64,20 @@ export default function App() {
     initAnalytics();
     track('app_open');
     // Best-effort cloud backup on every local change (no-op when signed out).
-    const unsub = useStore.subscribe((s) =>
+    const unsub = useStore.subscribe((s, prev) => {
       schedulePush(() => ({
         profile: s.profile,
         mealsByDate: s.mealsByDate,
         liftDates: s.liftDates,
         weighIns: s.weighIns,
-      }))
-    );
+      }));
+      // Lifecycle email needs to know who is Pro (no-op when signed out).
+      if (s.entitled !== prev.entitled) recordPro(s.entitled).catch(() => {});
+    });
+    const unwatchApple = watchAppleRevocation();
     return () => {
       unsub();
+      unwatchApple();
       unsubHydration();
       clearTimeout(gateTimer);
     };
@@ -113,6 +117,7 @@ export default function App() {
         <Stack.Screen name="QuizTrain" component={QuizTrainScreen} />
         <Stack.Screen name="QuizGoal" component={QuizGoalScreen} />
         <Stack.Screen name="Computing" component={ComputingScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="SavePlan" component={SavePlanScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Reveal" component={RevealScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Projection" component={ProjectionScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} options={{ gestureEnabled: false }} />

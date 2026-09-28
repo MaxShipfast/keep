@@ -211,3 +211,6 @@ Gotchas learned the hard way:
 8. Persisted state must load safely: new `Profile` fields need a default in `defaultProfile`
    (the persist `merge` layers old saves over it), and storage errors resolve to defaults.
 9. "Reset app" wipes the plan and logs, never the subscription (that belongs to the Apple ID).
+10. Accounts are optional. Sign-out never calls RevenueCat `logOut()` (it would strand a paying
+    user on an anonymous customer without the receipt), and "Delete account" must call the
+    `delete_account()` function, which removes the auth user and cascades to all their rows.
