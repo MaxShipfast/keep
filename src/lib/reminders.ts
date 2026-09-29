@@ -80,10 +80,37 @@ type ReminderState = Pick<
   'profile' | 'mealsByDate' | 'trialEndsAt'
 >;
 
-/** The next 7 days of reminders for this state, in time order, excluding anything already past. */
+/** Apple's cancel-by rule is 24 hours before renewal; 30 leaves a margin to act. */
+const TRIAL_REMINDER_LEAD_MS = 30 * 3600 * 1000;
+const QUIET_START = 21;
+const QUIET_END = 8;
+
+/** Rotating wording: the same message every evening stops being read. */
+const EVENING = [
+  (left: number) => `${left}g to go today. A shake or Greek yogurt closes the gap.`,
+  (left: number) => `You're ${left}g short of your floor. Cottage cheese, eggs or a shake will do it.`,
+  (left: number) => `${left}g left. A protein-dense snack now keeps today's muscle protected.`,
+  (left: number) => `Close today's ring: ${left}g to go. Tuna, chicken or skyr are easy wins.`,
+  (left: number) => `Almost there? ${left}g left on today's floor.`,
+];
+
+/** Moves a time that lands in quiet hours to 8 pm the evening before (never later). */
+function outsideQuietHours(d: Date): Date {
+  const h = d.getHours();
+  if (h >= QUIET_END && h < QUIET_START) return d;
+  const e = new Date(d);
+  if (h < QUIET_END) e.setDate(e.getDate() - 1);
+  e.setHours(20, 0, 0, 0);
+  return e;
+}
+
+/**
+ * The next 7 days of reminders for this state, in time order, excluding anything already past.
+ * At most one habit nudge a day (the evening check), plus the injection-day and Sunday notes and the
+ * trial heads-up. No medication or injection wording, since notifications show on the lock screen.
+ */
 export function reminderJobs(st: ReminderState, now: Date): ReminderJob[] {
   const floor = floorG(st.profile.weightLb);
-  const perMeal = Math.round(floor / 3);
   const soon = now.getTime() + 60_000;
   const eaten = proteinOn(st, dateKey(now));
   const streak = currentStreak(st);
@@ -93,52 +120,41 @@ export function reminderJobs(st: ReminderState, now: Date): ReminderJob[] {
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
     const isToday = i === 0;
     const weekday = weekdayMon0(day);
-    const shotDay = weekday === st.profile.shotDay;
-    const sunday = weekday === 6;
-    const floorHit = isToday && eaten >= floor;
+    const lowAppetiteDay = weekday === st.profile.shotDay;
 
-    // One daytime slot: the shot-day tip, the Sunday score, or the lunch nudge.
-    if (shotDay) {
+    if (lowAppetiteDay) {
       jobs.push({
         when: at(day, 9, 0),
-        title: 'Shot day',
-        body: 'Appetite dips for about 48 hours. Small, protein-dense portions work best, and your streak is safe today.',
+        title: 'Easy day today',
+        body: 'Small, protein-dense portions work best today, and your streak is protected.',
       });
-    } else if (sunday) {
+    } else if (weekday === 6) {
       jobs.push({
         when: at(day, 18, 0),
         title: 'Your Muscle Guard score is ready',
         body: 'See how this week protected your muscle, and the one thing to fix next week.',
       });
-    } else if (!(isToday && eaten >= floor / 2)) {
-      jobs.push({
-        when: at(day, 12, 30),
-        title: 'Protein check',
-        body: `Lunch is your best protein window. Aim for about ${perMeal}g.`,
-      });
     }
 
-    // Evening: only while the floor isn't hit. Today's reminder knows the exact gap.
-    if (!floorHit) {
-      const left = floor - eaten;
+    // The one daily habit nudge: only while today's floor is not yet hit.
+    if (!(isToday && eaten >= floor)) {
+      const left = isToday ? floor - eaten : floor;
+      const variant = EVENING[(day.getDate() + day.getMonth()) % EVENING.length];
       jobs.push({
         when: at(day, 19, 30),
-        title: isToday && streak >= 3 && !shotDay ? `Keep your ${streak}-day streak` : 'Evening protein check',
-        body: isToday
-          ? `You're at ${eaten}/${floor}g. ${left}g to go: a shake or Greek yogurt closes the gap.`
-          : `Still short of ${floor}g? A protein shake or Greek yogurt closes the gap.`,
+        title: isToday && streak >= 3 && !lowAppetiteDay ? `Keep your ${streak}-day streak` : 'Evening protein check',
+        body: isToday ? variant(left) : `Still short of ${floor}g? A protein shake or Greek yogurt closes the gap.`,
       });
     }
   }
 
-  // Honest heads-up the day before a free trial turns into a paid subscription.
+  // Honest heads-up before a free trial turns into a paid subscription.
   if (st.trialEndsAt) {
     const end = new Date(st.trialEndsAt);
-    const dayBefore = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 1);
     jobs.push({
-      when: at(dayBefore, 10, 0),
-      title: 'Your free trial ends tomorrow',
-      body: `Keep Pro renews on ${DAY_FULL[weekdayMon0(end)]} unless you cancel in Settings > your name > Subscriptions.`,
+      when: outsideQuietHours(new Date(st.trialEndsAt - TRIAL_REMINDER_LEAD_MS)),
+      title: 'Your free trial ends soon',
+      body: `Keep Pro renews ${DAY_FULL[weekdayMon0(end)]} at ${end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}. To avoid the charge, cancel at least 24 hours before in Settings > your name > Subscriptions.`,
     });
   }
 

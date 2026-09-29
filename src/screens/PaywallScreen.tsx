@@ -35,6 +35,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Paywall'>;
 const TERMS_URL = 'https://keep-scan.shipfastvc.workers.dev/terms';
 const PRIVACY_URL = 'https://keep-scan.shipfastvc.workers.dev/privacy';
 
+/** "Thu, Oct 1" for today plus n days. */
+function shortDate(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 function openLink(url: string) {
   Linking.openURL(url).catch(() => Alert.alert("Couldn't open the link", url));
 }
@@ -153,15 +160,10 @@ export function PaywallScreen({ navigation }: Props) {
             </View>
           </View>
 
-          <Text style={s.section}>Same weight loss, more of it fat</Text>
-          <CompositionBars
-            loss={conv(proj.loss)}
-            riskMuscle={conv(proj.riskMuscle)}
-            safeMuscle={conv(proj.safeMuscle)}
-            unit={unit}
-          />
+          <Text style={s.section}>Aim to lose fat, not muscle</Text>
+          <CompositionBars loss={conv(proj.loss)} lean={conv(proj.lean)} unit={unit} />
           <Text style={s.disclaimer}>
-            Illustrative 12-week estimate from average GLP-1 trial results, not a medical prediction.
+            Typical split from the STEP 1 trial (62% fat, 38% lean mass). An aim, not a prediction; results vary.
           </Text>
 
           <Text style={s.section}>Everything in Keep Pro</Text>
@@ -189,7 +191,7 @@ export function PaywallScreen({ navigation }: Props) {
             <FeatureRow
               visual={<ReminderVisual />}
               title="Smart reminders"
-              sub="A lunch nudge and an evening check, only when you're short"
+              sub="One evening check when you're short, and a heads-up before any charge"
             />
           </View>
 
@@ -252,17 +254,17 @@ export function PaywallScreen({ navigation }: Props) {
             <>
               <Text style={s.section}>{trialDays > 0 ? 'How your free trial works' : 'How billing works'}</Text>
               <View style={s.timeline}>
-                <TimelineRow now title="Today" sub="Full access to everything above. No charge." />
+                <TimelineRow now title={`Today, ${shortDate(0)}`} sub="Full access to everything above. No charge today." />
                 {trialDays > 0 ? (
                   <>
                     {trialDays > 1 ? (
                       <TimelineRow
-                        title={`Day ${trialDays - 1}`}
-                        sub="Last day to cancel. Cancel by the end of the day and you're never charged."
+                        title={shortDate(trialDays - 1)}
+                        sub="We remind you, if reminders are on. Cancel at least a day before your trial ends and you're never charged."
                       />
                     ) : null}
                     <TimelineRow
-                      title={`Day ${trialDays}`}
+                      title={shortDate(trialDays)}
                       sub={`Your trial ends and ${plan.periodPrice} per ${periodLong} starts, renewing until you cancel.`}
                       last
                     />

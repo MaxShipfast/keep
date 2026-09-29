@@ -52,21 +52,21 @@ function StatRingSlide({ height }: { height: number }) {
             strokeWidth={10}
             strokeLinecap="round"
             strokeDasharray="666"
-            strokeDashoffset="400"
+            strokeDashoffset="413"
             fill="none"
             transform="rotate(-90 115 115)"
           />
         </Svg>
-        <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1 }}>40%</Text>
+        <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1 }}>38%</Text>
         <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold, textAlign: 'center', marginTop: 3 }}>
-          of GLP-1 weight loss{'\n'}can be lean mass
+          of weight lost in a major{'\n'}GLP-1 trial was lean mass
         </Text>
       </View>
       <Text style={s.slideTitle}>
         The scale says you're losing. <Text style={{ color: colors.blue }}>Losing what?</Text>
       </Text>
       <Text style={s.slideSub}>
-        Keep helps you protect your muscle on Ozempic, Zepbound, or Mounjaro, so more of what you lose is fat.
+        Keep helps you hit the protein that protects muscle while you lose weight on Ozempic, Zepbound or Mounjaro.
       </Text>
     </View>
   );
@@ -546,10 +546,10 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
       navigation.navigate('Paywall');
     }
   };
-  const { lossDisp, riskDisp, safeDisp } = useMemo(() => {
+  const { lossDisp, leanDisp } = useMemo(() => {
     const p = projectionLb(profile.weightLb);
     const conv = (lb: number) => Math.max(1, weightAmount(lb, unit));
-    return { lossDisp: conv(p.loss), riskDisp: conv(p.riskMuscle), safeDisp: conv(p.safeMuscle) };
+    return { lossDisp: conv(p.loss), leanDisp: conv(p.lean) };
   }, [profile.weightLb, unit]);
 
   return (
@@ -559,16 +559,16 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
       <H1>
         Same {lossDisp} {unit} loss. Very different bodies.
       </H1>
-      <Lede>Most of what you lose should be fat. Your protein floor is how you tip the split your way.</Lede>
+      <Lede>In a major GLP-1 trial, 38% of the weight people lost was lean mass. Protein and strength training are the levers you control.</Lede>
       <FadeSlideIn delay={100}>
         <View style={{ marginTop: 20 }}>
-          <ProjectionChart loss={lossDisp} riskMuscle={riskDisp} safeMuscle={safeDisp} unit={unit} />
+          <ProjectionChart loss={lossDisp} lean={leanDisp} unit={unit} />
         </View>
       </FadeSlideIn>
       <FadeSlideIn delay={280}>
         <Text style={s.disclaimer}>
-          Illustrative estimate based on average results reported in GLP-1 clinical trials, not a medical prediction.
-          Your results will vary; talk to your prescriber about your goals.
+          Typical split from the STEP 1 trial (62% fat, 38% lean mass). The 12-week loss is illustrative, not a
+          prediction, and your results will vary. Talk to your prescriber about your goals.
         </Text>
         <GButton title={entitled ? 'Go to my plan' : 'Protect my 12 weeks'} onPress={onContinue} style={{ marginTop: 18 }} />
       </FadeSlideIn>

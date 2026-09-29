@@ -21,7 +21,7 @@ export const colors = {
 };
 
 export const gradients = {
-  cta: ['#5F8FFF', '#3D6EF7'] as const,
+  cta: ['#4579FA', '#2C5FE8'] as const,
   ring: ['#8AB2FF', '#3D7BFF'] as const,
   flame: ['#FFB65C', '#FF6B35'] as const,
 };

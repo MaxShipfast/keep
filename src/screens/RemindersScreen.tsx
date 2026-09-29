@@ -3,8 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
-import { Screen, GButton, GhostButton, Eyebrow, H1, Lede } from '../components/ui';
-import { useStore, floorG } from '../store';
+import { Screen, GButton, Eyebrow, H1, Lede } from '../components/ui';
+import { useStore } from '../store';
 import { DAY_FULL } from '../lib/dates';
 import { reminderPermission, enableReminders } from '../lib/reminders';
 import { track } from '../lib/analytics';
@@ -44,14 +44,16 @@ export function RemindersScreen({ navigation }: Props) {
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
 
-  const floor = floorG(profile.weightLb);
-  const rows: Array<[keyof typeof Ionicons.glyphMap, string, string]> = [
-    ['restaurant-outline', 'Lunch protein check', `12:30 pm · aim for about ${Math.round(floor / 3)}g`],
-    ['flame-outline', 'Evening floor check', "7:30 pm · only if you're short, with the grams left"],
-    ['medkit-outline', 'Shot-day tips', `${DAY_FULL[profile.shotDay]} mornings, when appetite dips`],
-    ['shield-checkmark-outline', 'Weekly Muscle Guard score', 'Sunday evenings'],
-  ];
-  if (trialEndsAt) rows.push(['calendar-outline', 'Trial reminder', 'The day before your free trial ends']);
+  const reminderDay = trialEndsAt
+    ? new Date(trialEndsAt - 30 * 3600 * 1000).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    : null;
+  const rows: Array<[keyof typeof Ionicons.glyphMap, string, string]> = [];
+  if (reminderDay) rows.push(['calendar-outline', 'Trial reminder', `${reminderDay}, a day before your trial ends`]);
+  rows.push(
+    ['flame-outline', 'Evening protein check', "7:30 pm, only if you're short, with the grams left"],
+    ['sunny-outline', 'Shot-day tips', `${DAY_FULL[profile.shotDay]} mornings, when appetite dips`],
+    ['shield-checkmark-outline', 'Weekly Muscle Guard score', 'Sunday evenings']
+  );
 
   const onEnable = async () => {
     if (busy) return;
@@ -66,9 +68,11 @@ export function RemindersScreen({ navigation }: Props) {
       <View style={st.iconWrap}>
         <Ionicons name="notifications-outline" size={46} color={colors.blue} />
       </View>
-      <Eyebrow style={{ textAlign: 'center', marginTop: 20 }}>Stay on track</Eyebrow>
-      <H1 style={{ textAlign: 'center' }}>Nudges that protect your streak</H1>
-      <Lede style={{ textAlign: 'center' }}>At most two a day, built around your plan. They stop once you hit your floor.</Lede>
+      <Eyebrow style={{ textAlign: 'center', marginTop: 20 }}>{reminderDay ? 'Your trial has started' : 'Stay on track'}</Eyebrow>
+      <H1 style={{ textAlign: 'center' }}>{reminderDay ? "We'll remind you before it ends" : 'Nudges that protect your streak'}</H1>
+      <Lede style={{ textAlign: 'center' }}>
+        One nudge a day at most, built around your plan. Nothing about your medication ever shows on your lock screen.
+      </Lede>
       <View style={st.list}>
         {rows.map(([icon, title, sub]) => (
           <View key={title} style={st.row}>
@@ -82,14 +86,7 @@ export function RemindersScreen({ navigation }: Props) {
           </View>
         ))}
       </View>
-      <GButton title={busy ? 'One moment…' : 'Turn on reminders'} onPress={onEnable} disabled={busy} style={{ marginTop: 24 }} />
-      <GhostButton
-        title="Not now"
-        onPress={() => {
-          track('reminders_prompt', { granted: false, skipped: true });
-          toHome();
-        }}
-      />
+      <GButton title={busy ? 'One moment…' : 'Continue'} onPress={onEnable} disabled={busy} style={{ marginTop: 24 }} />
     </Screen>
   );
 }
