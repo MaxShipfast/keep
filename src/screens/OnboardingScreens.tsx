@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Dimensions, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import {
 } from '../components/ui';
 import { FadeSlideIn, useCountUp } from '../components/anim';
 import { ProjectionChart } from '../components/ProjectionChart';
-import { floorG, useStore } from '../store';
+import { floorG, projectionLb, useStore } from '../store';
 import { DAY_LABELS } from '../lib/dates';
 import { weightAmount } from '../lib/units';
 import { track } from '../lib/analytics';
@@ -32,9 +32,9 @@ type P<T extends keyof RootStackParamList> = NativeStackScreenProps<RootStackPar
 
 const SLIDE_W = Dimensions.get('window').width - 48;
 
-function StatRingSlide() {
+function StatRingSlide({ height }: { height: number }) {
   return (
-    <View style={{ width: SLIDE_W, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: SLIDE_W, height, alignItems: 'center', justifyContent: 'center' }}>
       <View style={{ width: 230, height: 230, alignItems: 'center', justifyContent: 'center' }}>
         <Svg width={230} height={230} style={StyleSheet.absoluteFill}>
           <Defs>
@@ -59,7 +59,7 @@ function StatRingSlide() {
         </Svg>
         <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1 }}>40%</Text>
         <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold, textAlign: 'center', marginTop: 3 }}>
-          of GLP-1 weight loss{'\n'}can be muscle
+          of GLP-1 weight loss{'\n'}can be lean mass
         </Text>
       </View>
       <Text style={s.slideTitle}>
@@ -72,26 +72,24 @@ function StatRingSlide() {
   );
 }
 
-function IconSlide({
-  icon,
-  tint,
-  bg,
+function VisualSlide({
+  height,
+  visual,
   title,
   accent,
+  tint,
   sub,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-  bg: string;
+  height: number;
+  visual: React.ReactNode;
   title: string;
   accent: string;
+  tint: string;
   sub: string;
 }) {
   return (
-    <View style={{ width: SLIDE_W, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={[s.slideIcon, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={72} color={tint} />
-      </View>
+    <View style={{ width: SLIDE_W, height, alignItems: 'center', justifyContent: 'center' }}>
+      {visual}
       <Text style={s.slideTitle}>
         {title} <Text style={{ color: tint }}>{accent}</Text>
       </Text>
@@ -100,8 +98,69 @@ function IconSlide({
   );
 }
 
+/** A real scan result: the meal photo with the numbers Keep returns for it. */
+function ScanPreview() {
+  return (
+    <View style={{ width: 260, height: 232 }}>
+      <Image source={require('../../assets/meal-poke.jpg')} style={s.previewPhoto} />
+      <View style={s.previewCard}>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>Salmon poke bowl</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+          {[
+            ['32g', 'Protein', colors.blue],
+            ['540', 'Calories', colors.text],
+            ['58g', 'Carbs', colors.text],
+          ].map(([v, k, c]) => (
+            <View key={k} style={s.previewMacro}>
+              <Text style={{ color: c, fontSize: 17, fontFamily: font.heavy }}>{v}</Text>
+              <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.semibold }}>{k}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** The weekly score next to a fire streak, over a week where shot day is a grace day. */
+function ProgressPreview() {
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  return (
+    <View style={{ width: 270, gap: 10 }}>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={[s.previewTile, { flex: 1 }]}>
+          <Ionicons name="shield-checkmark" size={24} color={colors.green} />
+          <Text style={{ color: colors.green, fontSize: 30, fontFamily: font.heavy, marginTop: 2 }}>83</Text>
+          <Text style={s.previewTileLabel}>Muscle Guard</Text>
+        </View>
+        <View style={[s.previewTile, { flex: 1, backgroundColor: colors.flameSoft }]}>
+          <Ionicons name="flame" size={24} color={colors.flame} />
+          <Text style={{ color: colors.flame, fontSize: 30, fontFamily: font.heavy, marginTop: 2 }}>12</Text>
+          <Text style={s.previewTileLabel}>day streak</Text>
+        </View>
+      </View>
+      <View style={[s.previewTile, { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12 }]}>
+        {days.map((d, i) => (
+          <View key={i} style={{ alignItems: 'center', gap: 5 }}>
+            <View
+              style={[
+                s.previewDay,
+                i === 3
+                  ? { borderStyle: 'dashed', borderColor: 'rgba(61,123,255,0.8)' }
+                  : { backgroundColor: 'rgba(61,220,151,0.18)', borderColor: 'rgba(61,220,151,0.6)' },
+              ]}
+            />
+            <Text style={{ color: i === 3 ? colors.blueLight : colors.text2, fontSize: 11.5, fontFamily: font.bold }}>{d}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function WelcomeScreen({ navigation }: P<'Welcome'>) {
   const [page, setPage] = useState(0);
+  const [slideH, setSlideH] = useState(0);
   const slides = [0, 1, 2];
   return (
     <Screen>
@@ -111,6 +170,8 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
         </Text>
       </FadeSlideIn>
       <FadeSlideIn delay={120} style={{ flex: 1 }}>
+        <View style={{ flex: 1, overflow: 'hidden' }} onLayout={(e) => setSlideH(e.nativeEvent.layout.height)}>
+        {slideH > 0 ? (
         <FlatList
           data={slides}
           horizontal
@@ -120,28 +181,30 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
           onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / SLIDE_W))}
           renderItem={({ item }) =>
             item === 0 ? (
-              <StatRingSlide />
+              <StatRingSlide height={slideH} />
             ) : item === 1 ? (
-              <IconSlide
-                icon="scan"
+              <VisualSlide
+                height={slideH}
+                visual={<ScanPreview />}
+                title="Snap your meal."
+                accent="See the protein."
                 tint={colors.blue}
-                bg={colors.blueSoft}
-                title="Point your camera."
-                accent="Protein counted."
-                sub="Scan any meal and hit your daily protein floor, a key habit for keeping muscle while you lose weight."
+                sub="AI counts protein, calories and carbs in seconds, and shows how close you are to today's floor."
               />
             ) : (
-              <IconSlide
-                icon="flame"
+              <VisualSlide
+                height={slideH}
+                visual={<ProgressPreview />}
+                title="Know it's working,"
+                accent="even on shot day."
                 tint={colors.flame}
-                bg={colors.flameSoft}
-                title="Streaks that survive"
-                accent="shot day."
-                sub="Appetite dips after your injection, so your streak never breaks on shot day."
+                sub="A weekly Muscle Guard score, and fire streaks that never break on your injection day."
               />
             )
           }
         />
+        ) : null}
+        </View>
       </FadeSlideIn>
       <View style={{ flexDirection: 'row', gap: 7, alignSelf: 'center', marginBottom: 20 }}>
         {slides.map((i) => (
@@ -484,11 +547,9 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
     }
   };
   const { lossDisp, riskDisp, safeDisp } = useMemo(() => {
-    const lossLb = Math.round(profile.weightLb * 0.08);
-    const riskLb = Math.max(4, Math.round(lossLb * 0.38));
-    const safeLb = Math.max(1, Math.round(lossLb * 0.1));
+    const p = projectionLb(profile.weightLb);
     const conv = (lb: number) => Math.max(1, weightAmount(lb, unit));
-    return { lossDisp: conv(lossLb), riskDisp: conv(riskLb), safeDisp: conv(safeLb) };
+    return { lossDisp: conv(p.loss), riskDisp: conv(p.riskMuscle), safeDisp: conv(p.safeMuscle) };
   }, [profile.weightLb, unit]);
 
   return (
@@ -516,6 +577,29 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
 }
 
 const s = StyleSheet.create({
+  previewPhoto: { position: 'absolute', left: 20, top: 0, width: 220, height: 170, borderRadius: 24 },
+  previewCard: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+  },
+  previewMacro: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 10, backgroundColor: colors.surface2 },
+  previewTile: {
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  previewTileLabel: { color: colors.text2, fontSize: 13, fontFamily: font.semibold, marginTop: 2 },
+  previewDay: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5 },
   inputLabel: { color: colors.text, fontSize: 16, fontFamily: font.bold, marginTop: 18 },
   input: {
     backgroundColor: colors.surface,
@@ -547,13 +631,6 @@ const s = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     paddingHorizontal: 12,
-  },
-  slideIcon: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   chip: {
     paddingVertical: 12,

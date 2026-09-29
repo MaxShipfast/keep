@@ -1,10 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
-import { Screen, GButton, GhostButton, Eyebrow, H1 } from '../components/ui';
-import { useStore } from '../store';
+import { GButton, GhostButton, Eyebrow, H1 } from '../components/ui';
+import { CompositionBars } from '../components/ProjectionChart';
+import {
+  FeatureRow,
+  ScanVisual,
+  RingVisual,
+  ScoreVisual,
+  StreakVisual,
+  ReminderVisual,
+} from '../components/FeatureVisuals';
+import { useStore, floorG, projectionLb } from '../store';
+import { DAY_FULL } from '../lib/dates';
+import { weightAmount } from '../lib/units';
 import {
   getPlans,
   purchase,
@@ -117,151 +129,277 @@ export function PaywallScreen({ navigation }: Props) {
         ? `Start ${trialDays}-day free trial`
         : `Continue for ${plan.periodPrice}/${periodLong}`;
 
-  return (
-    <Screen scroll>
-      <Eyebrow>Keep Pro</Eyebrow>
-      <H1>Lose fat on {profile.med}. Keep the muscle.</H1>
-      <View style={{ marginTop: 18, gap: 11 }}>
-        <Feature icon="scan" title="Unlimited photo protein scans" sub="Point your camera at any meal and get the protein in seconds" />
-        <Feature icon="flame" title="Muscle Guard score & streaks" sub="One weekly number that shows whether your habits are protecting muscle" />
-      </View>
+  const insets = useSafeAreaInsets();
+  const floor = floorG(profile.weightLb);
+  const unit = profile.unit;
+  const proj = projectionLb(profile.weightLb);
+  const conv = (lb: number) => Math.max(1, weightAmount(lb, unit));
 
-      <View style={{ marginTop: 14, gap: 10 }}>
-        {loading ? (
-          <ActivityIndicator color={colors.blue} style={{ paddingVertical: 28 }} />
-        ) : loadError ? (
-          <View style={s.errorBox}>
-            <Text style={s.errorTitle}>Plans didn't load</Text>
-            <Text style={s.errorText}>{loadError.friendly}</Text>
-            {showDetails ? <Text style={s.errorDetail}>{loadError.technical}</Text> : null}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <GhostButton title="Try again" onPress={loadPlans} />
-              <Pressable onPress={() => setShowDetails((v) => !v)} hitSlop={8}>
-                <Text style={s.detailsToggle}>{showDetails ? 'Hide details' : 'Show details'}</Text>
-              </Pressable>
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.ground }}>
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 170 }} showsVerticalScrollIndicator={false}>
+          <Eyebrow>Your plan is ready</Eyebrow>
+          <H1 style={{ fontSize: 31, lineHeight: 37 }}>Protect your muscle on {profile.med}</H1>
+
+          <View style={s.recap}>
+            <RingVisual current={floor} floor={floor} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.recapBig}>{floor}g protein a day</Text>
+              <Text style={s.recapSub}>
+                About {Math.round(floor / 3)}g per meal. {DAY_FULL[profile.shotDay]} is your shot day, and it never breaks
+                your streak.
+              </Text>
             </View>
           </View>
-        ) : (
-          plans.map((p) => (
-            <Pressable
-              key={p.id}
-              onPress={() => setSelected(p.id)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: selected === p.id }}
-              style={[s.plan, selected === p.id && { borderColor: colors.blue, backgroundColor: colors.blueSoft }]}
-            >
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.bold }}>{p.title}</Text>
-                  {p.badge ? (
-                    <View style={s.badge}>
-                      <Text style={{ color: '#08101F', fontSize: 12.5, fontFamily: font.heavy }}>{p.badge}</Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 2 }}>{p.sub}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.heavy }}>{p.price}</Text>
-                <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.semibold }}>{p.priceNote}</Text>
-              </View>
-            </Pressable>
-          ))
-        )}
-      </View>
 
-      {plan ? (
-        <View style={{ marginTop: 12 }}>
-          <TimelineRow now title="Today: full access" sub="Scan meals, get your floor, start your streak" />
-          {trialDays > 0 ? (
-            <>
-              {trialDays > 1 ? (
-                <TimelineRow
-                  title={`Day ${trialDays - 1}: last day to cancel`}
-                  sub="Changed your mind? Cancel by the end of today and you're never charged"
-                />
-              ) : null}
-              <TimelineRow
-                title={`Day ${trialDays}: trial ends`}
-                sub={`Then ${plan.periodPrice}/${periodShort}, renewing automatically until you cancel`}
-              />
-            </>
-          ) : (
-            <TimelineRow
-              title={`Billed ${plan.periodPrice} per ${periodLong}`}
-              sub="Renews automatically until you cancel. Access continues to the end of the period."
+          <Text style={s.section}>Same weight loss, more of it fat</Text>
+          <CompositionBars
+            loss={conv(proj.loss)}
+            riskMuscle={conv(proj.riskMuscle)}
+            safeMuscle={conv(proj.safeMuscle)}
+            unit={unit}
+          />
+          <Text style={s.disclaimer}>
+            Illustrative 12-week estimate from average GLP-1 trial results, not a medical prediction.
+          </Text>
+
+          <Text style={s.section}>Everything in Keep Pro</Text>
+          <View style={{ gap: 16 }}>
+            <FeatureRow
+              visual={<ScanVisual />}
+              title="Snap any meal"
+              sub="AI counts the protein, calories and carbs in seconds. Or type it in."
             />
-          )}
-        </View>
-      ) : null}
+            <FeatureRow
+              visual={<RingVisual />}
+              title="Your daily protein floor"
+              sub={`${floor}g from your weight, with the grams left always in view`}
+            />
+            <FeatureRow
+              visual={<ScoreVisual />}
+              title="Muscle Guard score"
+              sub="One weekly number for protein, strength training and pace"
+            />
+            <FeatureRow
+              visual={<StreakVisual />}
+              title="Fire streaks"
+              sub="Earn Bronze, Silver and Gold. Shot day never breaks a streak."
+            />
+            <FeatureRow
+              visual={<ReminderVisual />}
+              title="Smart reminders"
+              sub="A lunch nudge and an evening check, only when you're short"
+            />
+          </View>
 
-      <GButton title={cta} onPress={onBuy} disabled={busy || loading || !plan} style={{ marginTop: 20 }} />
-      <Text style={s.fineprint}>
-        {trialDays > 0 ? `No charge during your ${trialDays}-day free trial. ` : ''}Cancel anytime in your iPhone's
-        Settings → Apple ID → Subscriptions.
-      </Text>
-      <View style={s.linkRow}>
-        <Pressable onPress={onRestore} disabled={busy} hitSlop={8}>
-          <Text style={s.legalLink}>Restore purchase</Text>
-        </Pressable>
-        <Pressable onPress={() => openLink(TERMS_URL)} hitSlop={8}>
-          <Text style={s.legalLink}>Terms of Use</Text>
-        </Pressable>
-        <Pressable onPress={() => openLink(PRIVACY_URL)} hitSlop={8}>
-          <Text style={s.legalLink}>Privacy Policy</Text>
-        </Pressable>
-      </View>
-    </Screen>
-  );
-}
+          <Text style={s.section}>Choose your plan</Text>
+          <View style={{ gap: 10 }}>
+            {loading ? (
+              <ActivityIndicator color={colors.blue} style={{ paddingVertical: 28 }} />
+            ) : loadError ? (
+              <View style={s.errorBox}>
+                <Text style={s.errorTitle}>Plans didn't load</Text>
+                <Text style={s.errorText}>{loadError.friendly}</Text>
+                {showDetails ? <Text style={s.errorDetail}>{loadError.technical}</Text> : null}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <GhostButton title="Try again" onPress={loadPlans} />
+                  <Pressable onPress={() => setShowDetails((v) => !v)} hitSlop={8}>
+                    <Text style={s.detailsToggle}>{showDetails ? 'Hide details' : 'Show details'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              plans.map((p) => {
+                const on = selected === p.id;
+                const per = p.id === 'yearly' ? 'yr' : 'wk';
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => setSelected(p.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    style={[s.plan, on && { borderColor: colors.blue, backgroundColor: colors.blueSoft }]}
+                  >
+                    <View style={[s.radio, on && { borderColor: colors.blue }]}>{on ? <View style={s.radioDot} /> : null}</View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={s.planTitle}>{p.title}</Text>
+                        {p.badge ? (
+                          <View style={s.badge}>
+                            <Text style={s.badgeText}>{p.badge}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <Text style={s.planSub}>
+                        {p.id === 'yearly'
+                          ? `${p.trialDays > 0 ? `${p.trialDays}-day free trial · ` : ''}just ${p.price} a week`
+                          : 'Billed weekly · cancel anytime'}
+                      </Text>
+                    </View>
+                    {/* Apple: the amount billed must be the most prominent price. */}
+                    <Text style={s.planPrice}>
+                      {p.periodPrice}
+                      <Text style={s.planPer}>/{per}</Text>
+                    </Text>
+                  </Pressable>
+                );
+              })
+            )}
+          </View>
 
-function Feature({ icon, title, sub }: { icon: keyof typeof Ionicons.glyphMap; title: string; sub: string }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 12 }}>
-      <View style={s.check}>
-        <Ionicons name={icon} size={13} color={colors.blue} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontSize: 15.5, fontFamily: font.bold }}>{title}</Text>
-        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
+          {plan ? (
+            <>
+              <Text style={s.section}>{trialDays > 0 ? 'How your free trial works' : 'How billing works'}</Text>
+              <View style={s.timeline}>
+                <TimelineRow now title="Today" sub="Full access to everything above. No charge." />
+                {trialDays > 0 ? (
+                  <>
+                    {trialDays > 1 ? (
+                      <TimelineRow
+                        title={`Day ${trialDays - 1}`}
+                        sub="Last day to cancel. Cancel by the end of the day and you're never charged."
+                      />
+                    ) : null}
+                    <TimelineRow
+                      title={`Day ${trialDays}`}
+                      sub={`Your trial ends and ${plan.periodPrice} per ${periodLong} starts, renewing until you cancel.`}
+                      last
+                    />
+                  </>
+                ) : (
+                  <TimelineRow
+                    title={`${plan.periodPrice} per ${periodLong}`}
+                    sub="Renews automatically until you cancel. Access continues to the end of the period."
+                    last
+                  />
+                )}
+              </View>
+            </>
+          ) : null}
+
+          <Text style={s.fineprint}>
+            Payment is charged to your Apple ID{trialDays > 0 ? ' when the free trial ends' : ''}. Cancel anytime in your
+            iPhone's Settings, under your name, then Subscriptions.
+          </Text>
+          <View style={s.linkRow}>
+            <Pressable onPress={onRestore} disabled={busy} hitSlop={8}>
+              <Text style={s.legalLink}>Restore purchase</Text>
+            </Pressable>
+            <Pressable onPress={() => openLink(TERMS_URL)} hitSlop={8}>
+              <Text style={s.legalLink}>Terms of Use</Text>
+            </Pressable>
+            <Pressable onPress={() => openLink(PRIVACY_URL)} hitSlop={8}>
+              <Text style={s.legalLink}>Privacy Policy</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <GButton title={cta} onPress={onBuy} disabled={busy || loading || !plan} />
+        {plan ? (
+          <Text style={s.footerNote}>
+            {trialDays > 0
+              ? `No payment now. ${plan.periodPrice}/${periodShort} after ${trialDays} days. Cancel anytime.`
+              : `${plan.periodPrice}/${periodShort}. Cancel anytime.`}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 }
 
-function TimelineRow({ title, sub, now }: { title: string; sub: string; now?: boolean }) {
+function TimelineRow({ title, sub, now, last }: { title: string; sub: string; now?: boolean; last?: boolean }) {
   return (
-    <View style={{ flexDirection: 'row', gap: 14, paddingVertical: 4 }}>
-      <View style={[s.dot, now && { backgroundColor: colors.blue }]} />
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.bold }}>{title}</Text>
-        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
+    <View style={{ flexDirection: 'row', gap: 14 }}>
+      <View style={{ alignItems: 'center' }}>
+        <View style={[s.dot, now && { backgroundColor: colors.blue, borderColor: colors.blue }]}>
+          {now ? <Ionicons name="lock-open" size={11} color="#fff" /> : null}
+        </View>
+        {!last ? <View style={s.line} /> : null}
+      </View>
+      <View style={{ flex: 1, paddingBottom: last ? 0 : 16 }}>
+        <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.bold }}>{title}</Text>
+        <Text style={{ color: colors.text2, fontSize: 14.5, fontFamily: font.regular, marginTop: 2, lineHeight: 20 }}>{sub}</Text>
       </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  recap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  recapBig: { color: colors.text, fontSize: 19, fontFamily: font.heavy },
+  recapSub: { color: colors.text2, fontSize: 14.5, fontFamily: font.regular, marginTop: 3, lineHeight: 20 },
+  section: { color: colors.text, fontSize: 20, fontFamily: font.heavy, marginTop: 30, marginBottom: 14 },
+  disclaimer: { color: colors.text3, fontSize: 12.5, fontFamily: font.regular, marginTop: 10, lineHeight: 17 },
   plan: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 16,
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.line,
   },
-  badge: { backgroundColor: colors.blue, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  check: {
+  radio: {
     width: 22,
     height: 22,
-    borderRadius: 7,
-    backgroundColor: colors.blueSoft,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.text3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.blue },
+  planTitle: { color: colors.text, fontSize: 17.5, fontFamily: font.bold },
+  planSub: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 3 },
+  planPrice: { color: colors.text, fontSize: 19, fontFamily: font.heavy },
+  planPer: { color: colors.text2, fontSize: 14, fontFamily: font.semibold },
+  badge: { backgroundColor: colors.blue, borderRadius: 7, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeText: { color: '#08101F', fontSize: 12.5, fontFamily: font.heavy },
+  timeline: {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  dot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.surface2,
+    borderWidth: 2,
+    borderColor: colors.lineStrong,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
-  dot: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.surface2, marginTop: 2 },
+  line: { width: 2, flex: 1, backgroundColor: colors.lineStrong, marginVertical: 3 },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    backgroundColor: 'rgba(10,14,21,0.96)',
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  footerNote: { color: colors.text2, fontSize: 13, fontFamily: font.regular, textAlign: 'center', marginTop: 8 },
   errorBox: {
     padding: 15,
     borderRadius: 16,

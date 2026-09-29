@@ -165,6 +165,16 @@ export const useStore = create<State>()(
 
 /* ---------- derived helpers (pure functions over state) ---------- */
 
+/**
+ * Illustrative 12-week projection from GLP-1 trial averages, in lb: total loss (~8% of body
+ * weight), muscle lost without a protein plan (~38% of the loss), and at the protein floor (~10%).
+ * Always shown with the "illustrative estimate, not a medical prediction" disclaimer.
+ */
+export function projectionLb(weightLb: number): { loss: number; riskMuscle: number; safeMuscle: number } {
+  const loss = Math.round(weightLb * 0.08);
+  return { loss, riskMuscle: Math.max(4, Math.round(loss * 0.38)), safeMuscle: Math.max(1, Math.round(loss * 0.1)) };
+}
+
 /** Clinical guidance midpoint: 1.4 g protein per kg body weight, rounded to an even number. */
 export function floorG(weightLb: number): number {
   return Math.round((weightLb * 0.4536 * 1.4) / 2) * 2;

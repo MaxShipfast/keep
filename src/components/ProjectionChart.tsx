@@ -97,3 +97,54 @@ function Legend({ color, label }: { color: string; label: string }) {
     </View>
   );
 }
+
+/** Compact horizontal version for the paywall: one bar per scenario, split into fat and muscle. */
+export function CompositionBars({
+  loss,
+  riskMuscle,
+  safeMuscle,
+  unit,
+}: {
+  loss: number;
+  riskMuscle: number;
+  safeMuscle: number;
+  unit: string;
+}) {
+  const rows = [
+    { label: 'Without a protein plan', muscle: riskMuscle, muscleText: `${riskMuscle} ${unit}` },
+    { label: 'With Keep', muscle: safeMuscle, muscleText: `<${safeMuscle}` },
+  ];
+  return (
+    <View style={{ gap: 14 }}>
+      {rows.map((r) => {
+        const muscleFrac = Math.max(0.1, r.muscle / loss);
+        return (
+          <View key={r.label}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.semibold }}>{r.label}</Text>
+              <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular }}>
+                −{loss} {unit} total
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', height: 34, borderRadius: 10, overflow: 'hidden' }}>
+              <View style={{ flex: 1 - muscleFrac, backgroundColor: '#4F7FFF', justifyContent: 'center', paddingLeft: 10 }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: font.bold }} numberOfLines={1}>
+                  {loss - r.muscle} {unit} fat
+                </Text>
+              </View>
+              <View style={{ flex: muscleFrac, backgroundColor: '#F5A93F', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#3A2408', fontSize: 13, fontFamily: font.bold }} numberOfLines={1}>
+                  {r.muscleText}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+      <View style={{ flexDirection: 'row', gap: 18 }}>
+        <Legend color="#5C8CFF" label="Fat lost" />
+        <Legend color="#F5A93F" label="Muscle lost" />
+      </View>
+    </View>
+  );
+}
