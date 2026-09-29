@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -22,20 +23,32 @@ import { GButton, GhostButton } from '../components/ui';
 import { useStore, floorG, todayProtein } from '../store';
 import { scanMeal, scanIsMock, isNotFood, type ScanResult } from '../lib/scan';
 import { track } from '../lib/analytics';
+import { designCapture, designCaptureScanResult } from '../lib/designCapture';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scan'>;
 
 const MAX_MANUAL_G = 300;
 
+/** The sample result shown when exporting screens for design (see lib/designCapture). */
+const CAPTURE_RESULT: ScanResult = {
+  food: 'Salmon poke bowl',
+  portion: '1 small bowl',
+  proteinG: 32,
+  calories: 540,
+  carbsG: 58,
+  confidence: 'high',
+};
+
 export function ScanScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraPermission, requestPermission] = useCameraPermissions();
+  const permission = designCapture ? { granted: true, canAskAgain: true } : cameraPermission;
   const camRef = useRef<CameraView>(null);
   const mounted = useRef(true);
   const logging = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(designCaptureScanResult ? CAPTURE_RESULT : null);
   const [manual, setManual] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualG, setManualG] = useState('');
@@ -153,7 +166,11 @@ export function ScanScreen({ navigation }: Props) {
 
   return (
     <View style={s.root}>
-      <CameraView ref={camRef} style={StyleSheet.absoluteFill} facing="back" />
+      {designCapture ? (
+        <Image source={require('../../assets/meal-poke.jpg')} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      ) : (
+        <CameraView ref={camRef} style={StyleSheet.absoluteFill} facing="back" />
+      )}
       <Pressable
         onPress={() => navigation.goBack()}
         style={[s.close, { top: insets.top + 12 }]}

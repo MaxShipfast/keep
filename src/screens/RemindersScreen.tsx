@@ -8,6 +8,7 @@ import { useStore } from '../store';
 import { DAY_FULL } from '../lib/dates';
 import { reminderPermission, enableReminders } from '../lib/reminders';
 import { track } from '../lib/analytics';
+import { designCapture } from '../lib/designCapture';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Reminders'>;
@@ -27,6 +28,10 @@ export function RemindersScreen({ navigation }: Props) {
   useEffect(() => {
     reminderPermission().then((p) => {
       if (!mounted.current) return;
+      if (designCapture) {
+        setReady(true);
+        return;
+      }
       if (p === 'granted') {
         useStore.getState().setRemindersOn(true);
         toHome();

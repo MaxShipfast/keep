@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -22,6 +22,7 @@ import {
   type SignupSource,
 } from '../lib/sync';
 import { track } from '../lib/analytics';
+import { designCapture } from '../lib/designCapture';
 import type { RootStackParamList } from '../nav';
 
 /* ---------- shared pieces ---------- */
@@ -31,7 +32,7 @@ function useAppleAvailable(): boolean | null {
   const [available, setAvailable] = useState<boolean | null>(null);
   useEffect(() => {
     let active = true;
-    appleSignInAvailable().then((v) => active && setAvailable(v));
+    appleSignInAvailable().then((v) => active && setAvailable(v || designCapture));
     return () => {
       active = false;
     };
@@ -50,6 +51,15 @@ function AppleButton({ busy, onPress }: { busy: boolean; onPress: () => void }) 
         <ActivityIndicator color={colors.text} />
         <Text style={a.appleBusyText}>Saving your plan…</Text>
       </View>
+    );
+  }
+  if (Platform.OS === 'web') {
+    // Design-capture stand-in: Apple's button only exists on iOS.
+    return (
+      <Pressable onPress={onPress} style={[a.apple, a.appleWeb]}>
+        <Ionicons name="logo-apple" size={20} color="#000" />
+        <Text style={a.appleWebText}>Continue with Apple</Text>
+      </Pressable>
     );
   }
   return (
@@ -448,6 +458,8 @@ const a = StyleSheet.create({
     alignSelf: 'center',
   },
   apple: { width: '100%', height: 54 },
+  appleWeb: { borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  appleWebText: { color: '#000000', fontSize: 17, fontFamily: font.semibold },
   google: {
     height: 54,
     borderRadius: 16,
