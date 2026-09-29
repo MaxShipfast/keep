@@ -115,14 +115,14 @@ export function PaywallScreen({ navigation }: Props) {
         : 'Plans unavailable'
       : trialDays > 0
         ? `Start ${trialDays}-day free trial`
-        : `Continue — ${plan.periodPrice}/${periodLong}`;
+        : `Continue for ${plan.periodPrice}/${periodLong}`;
 
   return (
     <Screen scroll>
       <Eyebrow>Keep Pro</Eyebrow>
       <H1>Lose fat on {profile.med}. Keep the muscle.</H1>
       <View style={{ marginTop: 18, gap: 11 }}>
-        <Feature icon="scan" title="Unlimited photo protein scans" sub="Point your camera at any meal — protein counted in seconds" />
+        <Feature icon="scan" title="Unlimited photo protein scans" sub="Point your camera at any meal and get the protein in seconds" />
         <Feature icon="flame" title="Muscle Guard score & streaks" sub="One weekly number that shows whether your habits are protecting muscle" />
       </View>
 
@@ -172,24 +172,24 @@ export function PaywallScreen({ navigation }: Props) {
 
       {plan ? (
         <View style={{ marginTop: 12 }}>
-          <TimelineRow now title="Today — full access" sub="Scan meals, get your floor, start your streak" />
+          <TimelineRow now title="Today: full access" sub="Scan meals, get your floor, start your streak" />
           {trialDays > 0 ? (
             <>
               {trialDays > 1 ? (
                 <TimelineRow
-                  title={`Day ${trialDays - 1} — last day to cancel`}
+                  title={`Day ${trialDays - 1}: last day to cancel`}
                   sub="Changed your mind? Cancel by the end of today and you're never charged"
                 />
               ) : null}
               <TimelineRow
-                title={`Day ${trialDays} — trial ends`}
+                title={`Day ${trialDays}: trial ends`}
                 sub={`Then ${plan.periodPrice}/${periodShort}, renewing automatically until you cancel`}
               />
             </>
           ) : (
             <TimelineRow
               title={`Billed ${plan.periodPrice} per ${periodLong}`}
-              sub="Renews automatically until you cancel — access continues to the end of the period"
+              sub="Renews automatically until you cancel. Access continues to the end of the period."
             />
           )}
         </View>

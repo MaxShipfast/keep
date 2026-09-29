@@ -173,7 +173,7 @@ export function ScanScreen({ navigation }: Props) {
             <View style={[s.manualSheet, { paddingBottom: insets.bottom + 16 }]}>{manualEntry}</View>
           ) : (
             <View style={[s.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
-              {__DEV__ && scanIsMock ? <Text style={s.hint}>Demo mode — scan backend not configured</Text> : null}
+              {__DEV__ && scanIsMock ? <Text style={s.hint}>Demo mode: scan backend not configured</Text> : null}
               {busy ? <Text style={s.hint}>Counting protein…</Text> : null}
               <Pressable
                 onPress={capture}
@@ -215,8 +215,8 @@ export function ScanScreen({ navigation }: Props) {
               </Text>
               This takes you to {after}/{floor}g
               {after >= floor
-                ? " — today's muscle is protected."
-                : ' — one protein-dense snack later keeps the floor safe.'}
+                ? ". Today's muscle is protected."
+                : '. One protein-dense snack later keeps the floor safe.'}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>

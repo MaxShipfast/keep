@@ -42,6 +42,10 @@ export function StreaksScreen({ navigation }: Props) {
     });
   }
 
+  while (cells.length % 7 !== 0) cells.push({});
+  const weeks: Array<typeof cells> = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
   const shields = [
     { name: 'Bronze', days: 7 },
     { name: 'Silver', days: 30 },
@@ -56,12 +60,13 @@ export function StreaksScreen({ navigation }: Props) {
         <View style={s.flameHero}>
           <Ionicons name="flame" size={38} color={colors.flame} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1, lineHeight: 48 }}>
-            {streak} <Text style={{ fontSize: 15, color: colors.text2, fontFamily: font.bold }}>days</Text>
+            {streak} <Text style={{ fontSize: 16, color: colors.text2, fontFamily: font.bold }}>{streak === 1 ? 'day' : 'days'}</Text>
           </Text>
-          <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 4 }}>
-            Current floor streak · best {best} · floor hit {rate}% of days
+          <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.semibold, marginTop: 2 }}>Current floor streak</Text>
+          <Text style={{ color: colors.text3, fontSize: 13, fontFamily: font.regular, marginTop: 2 }}>
+            Best {best} · floor hit {rate}% of days
           </Text>
         </View>
       </Card>
@@ -75,8 +80,8 @@ export function StreaksScreen({ navigation }: Props) {
           return (
             <Card key={sh.name} style={[s.shieldCard, !unlocked && !isNext && { opacity: 0.45 }]}>
               <Ionicons name={unlocked ? 'shield-checkmark' : 'shield-outline'} size={26} color={tint} />
-              <Text style={{ color: colors.text, fontSize: 12, fontFamily: font.bold, marginTop: 6 }}>{sh.name}</Text>
-              <Text style={{ color: colors.text2, fontSize: 10, fontFamily: font.regular, marginTop: 2 }}>
+              <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold, marginTop: 6 }}>{sh.name}</Text>
+              <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 2, textAlign: 'center' }}>
                 {sh.days}-day streak
               </Text>
               {isNext ? (
@@ -91,37 +96,43 @@ export function StreaksScreen({ navigation }: Props) {
 
       <Text style={s.sechead}>{monthName}</Text>
       <Card>
-        <View style={s.grid}>
+        <View style={s.week}>
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
             <Text key={`h${i}`} style={s.dw}>
               {d}
             </Text>
           ))}
-          {cells.map((c, i) => (
-            <View
-              key={i}
-              style={[
-                s.dcell,
-                c.hit && { backgroundColor: 'rgba(61,123,255,0.16)' },
-                c.grace && !c.hit && c.day ? s.grace : null,
-                c.today && { borderWidth: 1.5, borderColor: colors.blue },
-              ]}
-            >
-              {c.day ? (
-                <Text
-                  style={{
-                    color: c.hit || c.today ? colors.text : colors.text2,
-                    fontSize: 11,
-                    fontFamily: c.hit || c.today ? font.bold : font.regular,
-                  }}
-                >
-                  {c.day}
-                </Text>
-              ) : null}
-            </View>
-          ))}
         </View>
-        <View style={{ flexDirection: 'row', gap: 14, marginTop: 10 }}>
+        {weeks.map((week, wi) => (
+          <View key={wi} style={s.week}>
+            {week.map((c, i) => (
+              <View key={i} style={s.slot}>
+                {c.day ? (
+                  <View
+                    style={[
+                      s.dcell,
+                      c.hit && { backgroundColor: 'rgba(61,123,255,0.18)' },
+                      c.grace && !c.hit ? s.grace : null,
+                      c.today && { borderWidth: 1.5, borderColor: colors.blue },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: c.hit || c.today ? colors.text : colors.text2,
+                        fontSize: 13,
+                        fontFamily: c.hit || c.today ? font.bold : font.regular,
+                      }}
+                      allowFontScaling={false}
+                    >
+                      {c.day}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ))}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>
           <LegendDot color="rgba(61,123,255,0.35)" label="Floor hit" />
           <LegendDot dashed label="Shot-day grace" />
         </View>
@@ -129,7 +140,7 @@ export function StreaksScreen({ navigation }: Props) {
 
       <InsightCard style={{ marginTop: 12 }}>
         <Text style={{ color: colors.text, fontFamily: font.bold }}>Shot-day grace: </Text>
-        on your injection day, appetite craters — so your streak never breaks on a shot day. Protection shouldn't punish
+        on your injection day, appetite craters, so your streak never breaks on a shot day. Protection shouldn't punish
         you for taking your medication.
       </InsightCard>
     </Screen>
@@ -146,13 +157,13 @@ function LegendDot({ color, dashed, label }: { color?: string; dashed?: boolean;
           dashed ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(61,123,255,0.7)' } : null,
         ]}
       />
-      <Text style={{ color: colors.text2, fontSize: 10.5, fontFamily: font.regular }}>{label}</Text>
+      <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular }}>{label}</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  sechead: { color: colors.text, fontSize: 13.5, fontFamily: font.bold, marginTop: 14, marginBottom: 7 },
+  sechead: { color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 18, marginBottom: 8 },
   flameHero: {
     width: 64,
     height: 64,
@@ -164,21 +175,21 @@ const s = StyleSheet.create({
   shieldCard: { flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 8 },
   track: { marginTop: 7, height: 4, borderRadius: 2, backgroundColor: colors.surface2, overflow: 'hidden', alignSelf: 'stretch' },
   trackFill: { height: '100%', backgroundColor: colors.flame },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  week: { flexDirection: 'row' },
   dw: {
-    width: `${100 / 7}%`,
+    flex: 1,
     textAlign: 'center',
     color: colors.text2,
-    fontSize: 9.5,
+    fontSize: 11.5,
     fontFamily: font.bold,
-    paddingBottom: 4,
+    paddingBottom: 6,
   },
+  slot: { flex: 1, padding: 2 },
   dcell: {
-    width: `${100 / 7}%`,
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 9,
   },
   grace: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(61,123,255,0.6)' },
 });

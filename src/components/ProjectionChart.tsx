@@ -1,51 +1,99 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { ClipPath, Defs, LinearGradient, Rect, Stop, Text as SvgText, G } from 'react-native-svg';
 import { colors, font } from '../theme';
 import { Card } from './ui';
 
-export function ProjectionChart({ riskLabel, safeLabel }: { riskLabel: string; safeLabel: string }) {
-  const W = 330;
-  const H = 175;
-  const x0 = 34;
-  const x1 = 310;
-  const yTop = 32;
-  const yBottom = 128;
-  const yWith = yTop + (yBottom - yTop) / 3;
-  const mx = (x0 + x1) / 2;
-  const path = (yEnd: number) => `M${x0} ${yTop} Q${mx} ${yTop + (yEnd - yTop) * 0.35} ${x1} ${yEnd}`;
+/**
+ * "What the same weight loss is made of": two equal-height columns split into fat (blue, the good
+ * kind of loss) and muscle (amber). Equal heights carry the message that the scale shows the same
+ * number either way.
+ */
+export function ProjectionChart({
+  loss,
+  riskMuscle,
+  safeMuscle,
+  unit,
+}: {
+  loss: number;
+  riskMuscle: number;
+  safeMuscle: number;
+  unit: string;
+}) {
+  const W = 320;
+  const H = 276;
+  const base = 214;
+  const colH = 164;
+  const colW = 124;
+  const cols = [
+    { x: 22, muscle: riskMuscle, label: ['Without a', 'protein plan'], muscleText: `${riskMuscle} ${unit} muscle` },
+    { x: 174, muscle: safeMuscle, label: ['At your', 'protein floor'], muscleText: `<${safeMuscle} ${unit} muscle` },
+  ];
 
   return (
-    <Card style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
+    <Card style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 12 }}>
+      <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold, paddingHorizontal: 6 }}>
+        What your {loss} {unit} is made of
+      </Text>
       <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-        <Line x1={x0} y1={18} x2={x0} y2={140} stroke="rgba(255,255,255,0.08)" />
-        <Line x1={x0} y1={140} x2={318} y2={140} stroke="rgba(255,255,255,0.08)" />
-        <Line x1={x0} y1={79} x2={318} y2={79} stroke="rgba(255,255,255,0.045)" />
-        <SvgText x={38} y={153} fill={colors.text3} fontSize={9.5}>Now</SvgText>
-        <SvgText x={176} y={153} fill={colors.text3} fontSize={9.5} textAnchor="middle">Week 6</SvgText>
-        <SvgText x={316} y={153} fill={colors.text3} fontSize={9.5} textAnchor="end">Week 12</SvgText>
-        <SvgText x={40} y={26} fill={colors.text3} fontSize={9.5}>Muscle kept</SvgText>
-        <Path d={path(yBottom)} stroke={colors.amber} strokeWidth={2.5} strokeDasharray="6 6" fill="none" strokeLinecap="round" />
-        <Path d={path(yWith)} stroke={colors.blue} strokeWidth={3} fill="none" strokeLinecap="round" />
-        <Circle cx={x1} cy={yWith} r={4.5} fill={colors.blue} />
-        <Circle cx={x1} cy={yBottom} r={4} fill={colors.amber} />
-        <SvgText x={x1 - 10} y={yWith - 9} fill={colors.blue} fontSize={10.5} fontWeight="bold" textAnchor="end">
-          {safeLabel}
-        </SvgText>
-        <SvgText x={x1 - 10} y={yBottom - 9} fill={colors.amber} fontSize={10.5} fontWeight="bold" textAnchor="end">
-          {riskLabel}
-        </SvgText>
+        <Defs>
+          <LinearGradient id="fat" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#7FA6FF" />
+            <Stop offset="1" stopColor="#3D6EF7" />
+          </LinearGradient>
+          <LinearGradient id="muscle" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFC56E" />
+            <Stop offset="1" stopColor="#F29A2E" />
+          </LinearGradient>
+          {cols.map((c, i) => (
+            <ClipPath key={i} id={`col${i}`}>
+              <Rect x={c.x} y={base - colH} width={colW} height={colH} rx={16} />
+            </ClipPath>
+          ))}
+        </Defs>
+        {cols.map((c, i) => {
+          const muscleH = Math.max(22, (c.muscle / loss) * colH);
+          const fatH = colH - muscleH;
+          const fat = loss - c.muscle;
+          const cx = c.x + colW / 2;
+          return (
+            <G key={i}>
+              <SvgText x={cx} y={base - colH - 12} fill={colors.text} fontSize={18} fontFamily={font.heavy} textAnchor="middle">
+                {`−${loss} ${unit}`}
+              </SvgText>
+              <G clipPath={`url(#col${i})`}>
+                <Rect x={c.x} y={base - colH} width={colW} height={fatH} fill="url(#fat)" />
+                <Rect x={c.x} y={base - muscleH} width={colW} height={muscleH} fill="url(#muscle)" />
+                <Rect x={c.x} y={base - muscleH} width={colW} height={1.5} fill="rgba(10,14,21,0.35)" />
+              </G>
+              <SvgText x={cx} y={base - muscleH - fatH / 2 + 5} fill="#FFFFFF" fontSize={14.5} fontFamily={font.bold} textAnchor="middle">
+                {`${i === 1 ? '~' : ''}${fat} ${unit} fat`}
+              </SvgText>
+              <SvgText x={cx} y={base - muscleH / 2 + 5} fill="#3A2408" fontSize={i === 0 ? 14.5 : 12} fontFamily={font.bold} textAnchor="middle">
+                {c.muscleText}
+              </SvgText>
+              {c.label.map((line, li) => (
+                <SvgText key={li} x={cx} y={base + 22 + li * 17} fill={colors.text2} fontSize={13} fontFamily={font.semibold} textAnchor="middle">
+                  {line}
+                </SvgText>
+              ))}
+            </G>
+          );
+        })}
       </Svg>
-      <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 4, paddingBottom: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: colors.blue }} />
-          <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.regular }}>Hitting your protein floor</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={{ width: 14, borderTopWidth: 2.5, borderStyle: 'dashed', borderColor: colors.amber }} />
-          <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.regular }}>Without protection</Text>
-        </View>
+      <View style={{ flexDirection: 'row', gap: 18, paddingHorizontal: 6 }}>
+        <Legend color="#5C8CFF" label="Fat lost" />
+        <Legend color="#F5A93F" label="Muscle lost" />
       </View>
     </Card>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+      <View style={{ width: 12, height: 12, borderRadius: 4, backgroundColor: color }} />
+      <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular }}>{label}</Text>
+    </View>
   );
 }

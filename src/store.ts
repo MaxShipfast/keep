@@ -64,7 +64,7 @@ const defaultProfile: Profile = {
   shotDay: 3,
   weightLb: 200,
   unit: localeUnit(),
-  train: '1–2× a week',
+  train: '1-2 times a week',
   goal: '',
   onboarded: false,
 };

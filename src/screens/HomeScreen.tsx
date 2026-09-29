@@ -54,7 +54,7 @@ export function HomeScreen({ navigation }: Props) {
             <View style={s.shotDot} />
             <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular, flex: 1, lineHeight: 19 }}>
               <Text style={{ color: colors.text, fontFamily: font.bold }}>Shot day. </Text>
-              Appetite will dip for ~48h — small, protein-dense portions beat big meals. Your streak is safe today.
+              Appetite will dip for about 48 hours, so small, protein-dense portions beat big meals. Your streak is safe today.
             </Text>
           </View>
         ) : null}
@@ -110,7 +110,7 @@ export function HomeScreen({ navigation }: Props) {
           {todayMeals.length === 0 ? (
             <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
               <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, textAlign: 'center' }}>
-                Nothing logged yet — scan your first meal to start filling the ring.
+                Nothing logged yet. Scan your first meal to start filling the ring.
               </Text>
             </Card>
           ) : (

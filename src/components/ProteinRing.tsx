@@ -66,7 +66,7 @@ export function ProteinRing({
             marginTop: 4,
           }}
         >
-          {done ? 'Floor hit — protected' : `${left}g to go`}
+          {done ? 'Floor hit, protected' : `${left}g to go`}
         </Text>
       </View>
     </View>

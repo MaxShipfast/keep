@@ -41,8 +41,8 @@ export function GuardScreen({ navigation }: Props) {
     : weekendMisses > 0 && weekdayMisses === 0
       ? "your misses land on weekends. A Saturday-morning protein shake is the easiest way to lift next week's score."
       : hit7 >= 5
-        ? 'strong week. Consistency is what protects muscle — keep the floor streak alive.'
-        : 'protein at breakfast is the easiest win on a suppressed appetite — front-load it and the floor gets easier.';
+        ? 'strong week. Consistency is what protects muscle, so keep the floor streak alive.'
+        : 'protein at breakfast is the easiest win on a smaller appetite. Front-load it and the floor gets easier.';
 
   return (
     <Screen scroll>
@@ -86,7 +86,7 @@ export function GuardScreen({ navigation }: Props) {
               ? state.weighIns.length === 0
                 ? 'Add a weekly weigh-in to track pace'
                 : 'Weigh in again in a few days to see your pace'
-              : `${pace >= 0 ? '−' : '+'}${Math.abs(pace).toFixed(1)}%/week · ${pace <= 1.25 ? 'steady pace' : 'faster than ideal — protein matters most now'}`
+              : `${pace >= 0 ? '−' : '+'}${Math.abs(pace).toFixed(1)}%/week · ${pace <= 1.25 ? 'steady pace' : 'faster than ideal, so protein matters most now'}`
           }
           action={weighOpen ? undefined : '+ Weigh-in'}
           onAction={() => {
@@ -122,7 +122,7 @@ export function GuardScreen({ navigation }: Props) {
                 if (!Number.isFinite(raw) || v < 60 || v > 600) {
                   Alert.alert(
                     'Check the number',
-                    `Enter your weight in ${unit === 'kg' ? 'kilograms (27–272)' : 'pounds (60–600)'}.`
+                    `Enter your weight in ${unit === 'kg' ? 'kilograms (27 to 272)' : 'pounds (60 to 600)'}.`
                   );
                   return;
                 }

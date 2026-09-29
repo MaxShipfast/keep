@@ -283,7 +283,7 @@ export function SignInScreen({ navigation, route }: SignInProps) {
       ) : (
         <>
           <H1>Enter the 6-digit code</H1>
-          <Lede>Sent to {email.trim()} — it can take a minute. Check spam if it's shy.</Lede>
+          <Lede>Sent to {email.trim()}. It can take a minute, so check spam if it's shy.</Lede>
           <TextInput
             placeholder="123456"
             placeholderTextColor={colors.text3}
@@ -366,7 +366,7 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
         />
       ) : null}
       <ConsentRow value={optIn} onChange={setOptIn} />
-      {!busy ? <GhostButton title="Skip for now — you can do this later in Settings" onPress={toHome} /> : null}
+      {!busy ? <GhostButton title="Skip for now" onPress={toHome} /> : null}
     </Screen>
   );
 }

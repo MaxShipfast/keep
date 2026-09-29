@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,7 +66,7 @@ function StatRingSlide() {
         The scale says you're losing. <Text style={{ color: colors.blue }}>Losing what?</Text>
       </Text>
       <Text style={s.slideSub}>
-        Keep helps you protect your muscle on Ozempic, Zepbound, or Mounjaro — so more of what you lose is fat.
+        Keep helps you protect your muscle on Ozempic, Zepbound, or Mounjaro, so more of what you lose is fat.
       </Text>
     </View>
   );
@@ -128,7 +128,7 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
                 bg={colors.blueSoft}
                 title="Point your camera."
                 accent="Protein counted."
-                sub="Scan any meal and hit your daily protein floor — a key habit for keeping muscle while you lose weight."
+                sub="Scan any meal and hit your daily protein floor, a key habit for keeping muscle while you lose weight."
               />
             ) : (
               <IconSlide
@@ -137,7 +137,7 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
                 bg={colors.flameSoft}
                 title="Streaks that survive"
                 accent="shot day."
-                sub="Appetite dips after your injection. Your streak doesn't break for it — protection shouldn't punish you."
+                sub="Appetite dips after your injection, so your streak never breaks on shot day."
               />
             )
           }
@@ -169,16 +169,26 @@ export function WelcomeScreen({ navigation }: P<'Welcome'>) {
 
 /* ---------- Quiz steps ---------- */
 
+const OTHER_MED = 'Something else';
+
 const MEDS: Array<[string, string]> = [
   ['Zepbound', 'tirzepatide'],
   ['Ozempic', 'semaglutide'],
   ['Mounjaro', 'tirzepatide'],
   ['Wegovy', 'semaglutide'],
-  ['Compounded / other', 'semaglutide, tirzepatide or other'],
+  [OTHER_MED, 'compounded, a pill, or another GLP-1'],
 ];
 
 export function QuizMedScreen({ navigation }: P<'QuizMed'>) {
   const setProfile = useStore((st) => st.setProfile);
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherName, setOtherName] = useState('');
+  const next = (med: string, tracked: string) => {
+    setProfile({ med });
+    // The typed name stays on the phone; analytics only learns that "other" was picked.
+    track('quiz_step', { step: 1, med: tracked });
+    navigation.navigate('QuizShot');
+  };
   return (
     <Screen scroll>
       <BackButton onPress={() => navigation.goBack()} />
@@ -190,14 +200,29 @@ export function QuizMedScreen({ navigation }: P<'QuizMed'>) {
           <OptionCard
             title={name}
             sub={sub}
-            onPress={() => {
-              setProfile({ med: name === 'Compounded / other' ? 'your GLP-1' : name });
-              track('quiz_step', { step: 1, med: name });
-              navigation.navigate('QuizShot');
-            }}
+            selected={name === OTHER_MED && otherOpen}
+            onPress={() => (name === OTHER_MED ? setOtherOpen(true) : next(name, name))}
           />
         </FadeSlideIn>
       ))}
+      {otherOpen ? (
+        <FadeSlideIn>
+          <Text style={s.inputLabel}>What are you taking?</Text>
+          <TextInput
+            value={otherName}
+            onChangeText={setOtherName}
+            placeholder="e.g. compounded semaglutide"
+            placeholderTextColor={colors.text3}
+            autoFocus
+            autoCapitalize="none"
+            maxLength={40}
+            returnKeyType="done"
+            onSubmitEditing={() => next(otherName.trim() || 'your GLP-1', 'other')}
+            style={s.input}
+          />
+          <GButton title="Continue" onPress={() => next(otherName.trim() || 'your GLP-1', 'other')} style={{ marginTop: 12 }} />
+        </FadeSlideIn>
+      ) : null}
     </Screen>
   );
 }
@@ -213,7 +238,7 @@ export function QuizShotScreen({ navigation }: P<'QuizShot'>) {
       <ProgressDots step={2} />
       <Eyebrow>Step 2 of 5</Eyebrow>
       <H1>Which day do you take your shot?</H1>
-      <Lede>Appetite dips hardest for ~48 hours after. Keep adjusts your targets on those days.</Lede>
+      <Lede>Appetite dips hardest for about 48 hours after. Keep plans around it: your streak is safe on shot day, with tips for the low-appetite days.</Lede>
       <FadeSlideIn delay={100}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 26 }}>
           {DAY_LABELS.map((d, i) => (
@@ -259,7 +284,7 @@ export function QuizWeightScreen({ navigation }: P<'QuizWeight'>) {
       <ProgressDots step={3} />
       <Eyebrow>Step 3 of 5</Eyebrow>
       <H1>Your current weight</H1>
-      <Lede>Your muscle-protection number is calculated from body weight — not a calorie budget.</Lede>
+      <Lede>Your muscle-protection number comes from your body weight, not a calorie budget.</Lede>
       <View style={s.unitRow}>
         {(['lb', 'kg'] as const).map((u) => (
           <Pressable key={u} onPress={() => setProfile({ unit: u })} style={[s.unitBtn, unit === u && s.unitBtnSel]}>
@@ -299,9 +324,9 @@ export function QuizWeightScreen({ navigation }: P<'QuizWeight'>) {
 }
 
 const TRAINS: Array<[string, string]> = [
-  ['Not currently', "we'll start you with two 20-min sessions"],
-  ['1–2× a week', 'solid base — protein floor does the rest'],
-  ['3+× a week', 'great — your muscle is already fighting back'],
+  ['Not currently', 'Even two short sessions a week make a real difference.'],
+  ['1-2 times a week', 'Solid base. Your protein floor does the rest.'],
+  ['3+ times a week', 'Great. Your muscle is already fighting back.'],
 ];
 
 export function QuizTrainScreen({ navigation }: P<'QuizTrain'>) {
@@ -418,11 +443,13 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
           <Card style={{ flex: 1, padding: 14 }}>
             <Text style={s.factV}>{Math.round(floor / 3)}g</Text>
-            <Text style={s.factK}>per meal, 3 meals — realistic on a suppressed appetite</Text>
+            <Text style={s.factK}>per meal over 3 meals, realistic on a smaller appetite</Text>
           </Card>
           <Card style={{ flex: 1, padding: 14 }}>
-            <Text style={s.factV}>{profile.med}</Text>
-            <Text style={s.factK}>targets tuned to your medication & shot day</Text>
+            <Text style={[s.factV, profile.med.length > 12 && { fontSize: 15, lineHeight: 19 }]} numberOfLines={2}>
+              {profile.med}
+            </Text>
+            <Text style={s.factK}>your shot day is built into the plan</Text>
           </Card>
         </View>
       </FadeSlideIn>
@@ -471,34 +498,15 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
       <H1>
         Same {lossDisp} {unit} loss. Very different bodies.
       </H1>
+      <Lede>Most of what you lose should be fat. Your protein floor is how you tip the split your way.</Lede>
       <FadeSlideIn delay={100}>
-        <View style={{ marginTop: 24 }}>
-          <ProjectionChart riskLabel={`−${riskDisp} ${unit} muscle`} safeLabel={`−${safeDisp} ${unit} muscle`} />
+        <View style={{ marginTop: 20 }}>
+          <ProjectionChart loss={lossDisp} riskMuscle={riskDisp} safeMuscle={safeDisp} unit={unit} />
         </View>
       </FadeSlideIn>
       <FadeSlideIn delay={280}>
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-          <Card style={s.statChip}>
-            <Text style={s.statV}>
-              −{lossDisp} {unit}
-            </Text>
-            <Text style={s.statK}>typical 12-week loss on a GLP-1</Text>
-          </Card>
-          <Card style={s.statChip}>
-            <Text style={[s.statV, { color: colors.amber }]}>
-              {riskDisp} {unit}
-            </Text>
-            <Text style={s.statK}>muscle at risk without protection</Text>
-          </Card>
-          <Card style={s.statChip}>
-            <Text style={[s.statV, { color: colors.blue }]}>
-              &lt;{safeDisp} {unit}
-            </Text>
-            <Text style={s.statK}>at your protein floor</Text>
-          </Card>
-        </View>
         <Text style={s.disclaimer}>
-          Illustrative estimate based on average results reported in GLP-1 clinical trials — not a medical prediction.
+          Illustrative estimate based on average results reported in GLP-1 clinical trials, not a medical prediction.
           Your results will vary; talk to your prescriber about your goals.
         </Text>
         <GButton title={entitled ? 'Go to my plan' : 'Protect my 12 weeks'} onPress={onContinue} style={{ marginTop: 18 }} />
@@ -508,6 +516,18 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
 }
 
 const s = StyleSheet.create({
+  inputLabel: { color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 18 },
+  input: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 14,
+    color: colors.text,
+    fontSize: 16,
+    fontFamily: font.regular,
+    marginTop: 10,
+  },
   logo: { color: colors.text, fontSize: 21, fontFamily: font.heavy, textAlign: 'center', marginTop: 12 },
   slideTitle: {
     color: colors.text,
@@ -575,9 +595,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,180,84,0.25)',
   },
-  statChip: { flex: 1, padding: 12, alignItems: 'center' },
-  statV: { color: colors.text, fontSize: 20, fontFamily: font.heavy, letterSpacing: -0.4 },
-  statK: { color: colors.text2, fontSize: 10.5, fontFamily: font.regular, marginTop: 3, textAlign: 'center', lineHeight: 14 },
   disclaimer: {
     color: colors.text3,
     fontSize: 11,

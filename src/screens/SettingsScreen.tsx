@@ -143,7 +143,7 @@ export function SettingsScreen({ navigation }: Props) {
 
       <Text style={s.disc}>
         Keep provides general nutrition tracking and is not medical advice. Protein targets reflect published clinical
-        guidance (1.2–1.6 g/kg). Always follow your prescriber's instructions for medication and diet.
+        guidance (1.2 to 1.6 g/kg). Always follow your prescriber's instructions for medication and diet.
       </Text>
     </Screen>
   );
