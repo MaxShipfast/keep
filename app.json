@@ -54,7 +54,8 @@
           "backgroundColor": "#0A0E15"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withoutPushEntitlement"
     ],
     "extra": {
       "eas": {
