@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,8 +10,10 @@ import { useStore } from '../store';
 import {
   syncEnabled,
   emailSignInEnabled,
+  googleSignInEnabled,
   appleSignInAvailable,
   signInWithApple,
+  signInWithGoogle,
   sendCode,
   verifyCode,
   completeSignIn,
@@ -92,6 +95,45 @@ async function appleFlow(source: SignupSource, marketingOptIn: boolean): Promise
   }
 }
 
+/** Google's "G" mark in its official colours, as its sign-in branding requires. */
+function GoogleG({ size = 20 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 18 18">
+      <Path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
+      <Path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" />
+      <Path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" />
+      <Path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" />
+    </Svg>
+  );
+}
+
+function GoogleButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [a.google, pressed && { opacity: 0.85 }]}
+      accessibilityRole="button"
+      accessibilityLabel="Continue with Google"
+    >
+      <GoogleG />
+      <Text style={a.googleText}>Continue with Google</Text>
+    </Pressable>
+  );
+}
+
+async function googleFlow(source: SignupSource, marketingOptIn: boolean): Promise<boolean> {
+  try {
+    const res = await signInWithGoogle();
+    if (!res) return false;
+    await completeSignIn({ source, marketingOptIn, firstName: res.firstName });
+    track('sign_in', { method: 'google', source });
+    return true;
+  } catch (e: any) {
+    Alert.alert("Couldn't sign in", e?.message ?? 'Try again in a moment.');
+    return false;
+  }
+}
+
 /* ---------- Save your plan (after the plan is built, before it's revealed) ---------- */
 
 type SavePlanProps = NativeStackScreenProps<RootStackParamList, 'SavePlan'>;
@@ -118,7 +160,8 @@ export function SavePlanScreen({ navigation }: SavePlanProps) {
     };
   }, []);
 
-  const nothingToOffer = !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled);
+  const nothingToOffer =
+    !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled && !googleSignInEnabled);
   useEffect(() => {
     // Signed in already: leave at once. Otherwise wait until both checks have answered.
     if (nothingToOffer && (!syncEnabled || signedIn === true || (signedIn !== null && apple !== null))) toReveal();
@@ -129,14 +172,16 @@ export function SavePlanScreen({ navigation }: SavePlanProps) {
     return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
   }
 
-  const onApple = async () => {
+  const run = (flow: typeof appleFlow) => async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await appleFlow('save_plan', optIn);
+    const ok = await flow('save_plan', optIn);
     if (!mounted.current) return;
     setBusy(false);
     if (ok) toReveal();
   };
+  const onApple = run(appleFlow);
+  const onGoogle = run(googleFlow);
 
   return (
     <Screen>
@@ -151,6 +196,11 @@ export function SavePlanScreen({ navigation }: SavePlanProps) {
         </Lede>
       </View>
       {apple ? <AppleButton busy={busy} onPress={onApple} /> : null}
+      {googleSignInEnabled && !busy ? (
+        <View style={{ marginTop: 10 }}>
+          <GoogleButton onPress={onGoogle} />
+        </View>
+      ) : null}
       {emailSignInEnabled && !busy ? (
         <GhostButton
           title="Use email instead"
@@ -190,11 +240,11 @@ export function SignInScreen({ navigation, route }: SignInProps) {
   };
 
   // Apple is the only door while email is off: show nothing until we know whether it exists.
-  if (syncEnabled && apple === null && !emailSignInEnabled) {
+  if (syncEnabled && apple === null && !emailSignInEnabled && !googleSignInEnabled) {
     return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
   }
 
-  if (!syncEnabled || (apple === false && !emailSignInEnabled)) {
+  if (!syncEnabled || (apple === false && !emailSignInEnabled && !googleSignInEnabled)) {
     return (
       <Screen>
         <BackButton onPress={() => navigation.goBack()} />
@@ -209,13 +259,15 @@ export function SignInScreen({ navigation, route }: SignInProps) {
     );
   }
 
-  const onApple = async () => {
+  const run = (flow: typeof appleFlow) => async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await appleFlow(source, optIn);
+    const ok = await flow(source, optIn);
     setBusy(false);
     if (ok) finish();
   };
+  const onApple = run(appleFlow);
+  const onGoogle = run(googleFlow);
 
   const onSend = async () => {
     const addr = email.trim().toLowerCase();
@@ -262,9 +314,14 @@ export function SignInScreen({ navigation, route }: SignInProps) {
               <AppleButton busy={busy} onPress={onApple} />
             </View>
           ) : null}
+          {googleSignInEnabled && !busy ? (
+            <View style={{ marginTop: apple ? 10 : 24 }}>
+              <GoogleButton onPress={onGoogle} />
+            </View>
+          ) : null}
           {emailSignInEnabled ? (
             <>
-              {apple ? <Text style={a.or}>or use email</Text> : null}
+              {apple || googleSignInEnabled ? <Text style={a.or}>or use email</Text> : null}
               <TextInput
                 placeholder="you@email.com"
                 placeholderTextColor={colors.text3}
@@ -328,7 +385,8 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
     };
   }, []);
 
-  const nothingToOffer = !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled);
+  const nothingToOffer =
+    !syncEnabled || signedIn === true || (apple === false && !emailSignInEnabled && !googleSignInEnabled);
   useEffect(() => {
     if (nothingToOffer && (!syncEnabled || signedIn === true || (signedIn !== null && apple !== null))) toHome();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,14 +396,16 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
     return <View style={{ flex: 1, backgroundColor: colors.ground }} />;
   }
 
-  const onApple = async () => {
+  const run = (flow: typeof appleFlow) => async () => {
     if (busy) return;
     setBusy(true);
-    const ok = await appleFlow('after_purchase', optIn);
+    const ok = await flow('after_purchase', optIn);
     if (!mounted.current) return;
     setBusy(false);
     if (ok) toHome();
   };
+  const onApple = run(appleFlow);
+  const onGoogle = run(googleFlow);
 
   return (
     <Screen>
@@ -360,6 +420,11 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
         </Lede>
       </View>
       {apple ? <AppleButton busy={busy} onPress={onApple} /> : null}
+      {googleSignInEnabled && !busy ? (
+        <View style={{ marginTop: 10 }}>
+          <GoogleButton onPress={onGoogle} />
+        </View>
+      ) : null}
       {emailSignInEnabled && !busy ? (
         <GhostButton
           title="Use email instead"
@@ -383,6 +448,16 @@ const a = StyleSheet.create({
     alignSelf: 'center',
   },
   apple: { width: '100%', height: 54 },
+  google: {
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleText: { color: '#1F1F1F', fontSize: 17, fontFamily: font.semibold },
   appleBusy: {
     height: 54,
     borderRadius: 16,

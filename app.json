@@ -53,13 +53,15 @@
           "imageWidth": 180,
           "backgroundColor": "#0A0E15"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
         "projectId": "9340e51c-a0ff-4572-b97b-1f300eede7dc"
       }
     },
-    "owner": "maxshipfasts-team"
+    "owner": "maxshipfasts-team",
+    "scheme": "keep"
   }
 }

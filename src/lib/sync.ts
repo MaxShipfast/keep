@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { useStore } from '../store';
 import { linkPurchasesUser, clearPurchasesEmail } from './purchases';
@@ -21,6 +23,8 @@ const KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 export const syncEnabled = Boolean(URL && KEY);
 export const emailSignInEnabled = syncEnabled && process.env.EXPO_PUBLIC_EMAIL_SIGNIN === '1';
+/** Google needs a client ID and secret in the Supabase dashboard first (see README). */
+export const googleSignInEnabled = syncEnabled && process.env.EXPO_PUBLIC_GOOGLE_SIGNIN === '1';
 
 export type SignupSource = 'save_plan' | 'after_purchase' | 'settings' | 'welcome';
 
@@ -29,7 +33,8 @@ let client: SupabaseClient | null = null;
 function supabase(): SupabaseClient {
   if (!client) {
     client = createClient(URL, KEY, {
-      auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+      // PKCE: the Google redirect carries a one-time code, never tokens, back into the app.
+      auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, flowType: 'pkce' },
     });
   }
   return client;
@@ -100,6 +105,30 @@ export function watchAppleRevocation(): () => void {
     signOut().catch(() => {});
   });
   return () => sub.remove();
+}
+
+/* ---------- Google (Supabase OAuth in a secure browser sheet) ---------- */
+
+/**
+ * Opens Google's sign-in page in an in-app browser sheet and turns the returned one-time code into
+ * a session. Resolves null when the user closes the sheet.
+ */
+export async function signInWithGoogle(): Promise<{ firstName: string | null } | null> {
+  const redirectTo = Linking.createURL('auth-callback');
+  const { data, error } = await supabase().auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo, skipBrowserRedirect: true, queryParams: { prompt: 'select_account' } },
+  });
+  if (error || !data?.url) throw new Error("Google sign-in isn't available right now. Try again in a moment.");
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type !== 'success') return null;
+  const code = new URL(result.url).searchParams.get('code');
+  if (!code) throw new Error("Google didn't finish signing you in. Try again.");
+  const { data: session, error: exchangeError } = await supabase().auth.exchangeCodeForSession(code);
+  if (exchangeError) throw new Error(exchangeError.message);
+  const meta = session.user?.user_metadata ?? {};
+  const full = (meta.full_name ?? meta.name ?? '') as string;
+  return { firstName: full.trim().split(/\s+/)[0] || null };
 }
 
 /* ---------- Email one-time code ---------- */
