@@ -271,5 +271,40 @@ Accounts live on the `accounts` branch. Before submitting a build that includes 
   Also change Purchases → Purchase History to **linked**, because RevenueCat now uses the account ID.
 - **Privacy policy:** deploy the accounts version of the privacy policy from the backend's
   `accounts` branch at the same time.
-- **Review notes:** add "Sign in with Apple is optional (Save your plan → Not now skips it). To
-  delete an account: Settings → Delete account."
+- **Review notes and Apple's information request:** use this 1.1 text (3515 of 4,000
+  characters). The recording must now also show creating an account and deleting it.
+
+```
+Hello, and thank you for reviewing Keep. Here is the information you requested. We have also added it to the App Review Notes.
+
+1. Screen recording
+Attached is a screen recording from an iPhone running the latest iOS, using the submitted build (1.1.0). It starts at app launch and shows onboarding, creating an account with Sign in with Apple, the Keep Pro subscription purchase, meal scanning and logging, the Muscle Guard score, streaks, reminders, and deleting the account in Settings. Keep has no user-generated content.
+
+2. Purpose and audience
+Keep is a nutrition tracker for adults taking GLP-1 weight-loss medications (semaglutide or tirzepatide). These medications suppress appetite, and studies report that up to 40% of the weight lost can be lean mass. Keep helps users eat enough protein to protect muscle: it sets a personal daily protein target from published guidance (1.4 g per kg of body weight), estimates the protein in a meal from a photo, and sums up weekly habits (protein, strength training, rate of weight loss) in one score. It is informational only. It does not diagnose, treat, or give medication or dosing advice, and it reminds users to follow their prescriber.
+
+3. How to review (no login needed)
+- Launch the app and answer the five setup questions (any answers work).
+- "Save your plan" offers an optional account with Sign in with Apple; "Not now" skips it. Every feature works without an account.
+- After the plan and the 12-week projection, the Keep Pro paywall appears. Subscribe with a Sandbox account: keep_pro_yearly has a 3-day free trial, keep_pro_weekly has none. "Restore purchase" is on the same screen.
+- On the home screen, tap "Scan a meal" and allow camera access. The first time you tap the shutter, Keep asks permission to send the photo to OpenAI for analysis; tap Allow. Point the camera at any food, or tap "Type it instead".
+- Tap the Muscle Guard card for the score breakdown, and the streak card for streaks.
+- Settings has reminders, subscription management, the privacy policy, the terms of use, and "Delete account", which permanently deletes the account and its cloud backup.
+No credentials or sample files are needed.
+
+4. External services
+- Apple In-App Purchase (StoreKit): payment for the Keep Pro subscription.
+- RevenueCat: manages subscription status.
+- Supabase: optional accounts (Sign in with Apple) and the cloud backup of a signed-in user's plan and logs.
+- OpenAI API: estimates nutrition from meal photos, only after the user allows it. We don't store photos, and they aren't used to train AI models.
+- Cloudflare Workers: our server for scan requests, and hosting for the privacy policy, terms, and support pages.
+Keep has no analytics or advertising SDKs. Reminders are scheduled on the device.
+
+5. Regional differences
+The app works the same in every region. It is English only. The weight unit defaults to pounds or kilograms based on the device region. The optional email-tips box is pre-ticked only in the US. Apple sets subscription prices per storefront.
+
+6. Regulated industry and third-party material
+Keep is a consumer nutrition-tracking app, not a healthcare service. It is not a medical device (declared in App Store Connect), and it does not provide diagnosis, treatment, prescriptions, or dosing guidance, or sell or supply medication. Medication names appear only so users can say which medication they take. Keep is not affiliated with Novo Nordisk or Eli Lilly and uses no third-party logos or licensed content.
+
+Thank you.
+```
