@@ -132,8 +132,18 @@ npx supabase db push                             # tables, policies, functions
 npx supabase config push                         # auth settings and email template
 ```
 
-Then put the project URL and anon key in `eas.json` (`EXPO_PUBLIC_SUPABASE_URL`,
+Then put the project URL and publishable key in `eas.json` (`EXPO_PUBLIC_SUPABASE_URL`,
 `EXPO_PUBLIC_SUPABASE_ANON_KEY`).
+
+The live project: `keep` (ref `dmvmcphlnvgqouieddcr`, US East) in the Supabase organization
+"Keep", owned by Maxwell. The database password is in Maxwell's macOS Keychain as "Keep Supabase
+database". The Shipfast organization couldn't host it: another admin there is at the free-plan
+limit of two projects.
+
+If `db push` can't connect (some networks block port 5432), apply a migration from the dashboard's
+SQL editor, then record it with
+`insert into supabase_migrations.schema_migrations (version, name) values ('<timestamp>', '<name>');`
+so later pushes skip it.
 
 Rules that keep App Review and paying users happy:
 

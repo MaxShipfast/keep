@@ -232,13 +232,15 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-[auth.email.template.magic_link]
-subject = "Your Keep sign-in code"
-content_path = "./supabase/templates/code.html"
-
-[auth.email.template.confirmation]
-subject = "Your Keep sign-in code"
-content_path = "./supabase/templates/code.html"
+# Free projects can't change email templates until a custom SMTP sender is set up. Uncomment these
+# together with [auth.email.smtp] when email sign-in is turned on (EXPO_PUBLIC_EMAIL_SIGNIN=1).
+# [auth.email.template.magic_link]
+# subject = "Your Keep sign-in code"
+# content_path = "./supabase/templates/code.html"
+#
+# [auth.email.template.confirmation]
+# subject = "Your Keep sign-in code"
+# content_path = "./supabase/templates/code.html"
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
