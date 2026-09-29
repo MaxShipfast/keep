@@ -124,6 +124,6 @@ const st = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rowTitle: { color: colors.text, fontSize: 15.5, fontFamily: font.bold },
-  rowSub: { color: colors.text2, fontSize: 13.5, fontFamily: font.regular, marginTop: 2, lineHeight: 19 },
+  rowTitle: { color: colors.text, fontSize: 16.5, fontFamily: font.bold },
+  rowSub: { color: colors.text2, fontSize: 15, fontFamily: font.regular, marginTop: 2, lineHeight: 21 },
 });

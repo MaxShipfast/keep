@@ -55,13 +55,13 @@ export function ProteinRing({
           {current}
           <Text style={{ fontSize: 19, color: colors.text2, fontFamily: font.bold }}>/{floor}g</Text>
         </Text>
-        <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.semibold, marginTop: 6 }}>
+        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold, marginTop: 6 }}>
           Protein floor
         </Text>
         <Text
           style={{
             color: done ? colors.green : colors.blue,
-            fontSize: 12.5,
+            fontSize: 14,
             fontFamily: font.bold,
             marginTop: 4,
           }}

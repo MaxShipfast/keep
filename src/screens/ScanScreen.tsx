@@ -193,12 +193,12 @@ export function ScanScreen({ navigation }: Props) {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.text, fontSize: 19, fontFamily: font.heavy }}>{result.food}</Text>
-              <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular, marginTop: 3 }}>
+              <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 3 }}>
                 Est. portion: {result.portion} · log what you actually finished
               </Text>
             </View>
             <View style={s.conf}>
-              <Text style={{ color: colors.green, fontSize: 11, fontFamily: font.bold }}>
+              <Text style={{ color: colors.green, fontSize: 13, fontFamily: font.bold }}>
                 {result.confidence === 'high' ? 'High confidence' : 'Best estimate'}
               </Text>
             </View>
@@ -209,7 +209,7 @@ export function ScanScreen({ navigation }: Props) {
             <Macro v={`${result.carbsG}g`} k="Carbs" />
           </View>
           <View style={s.verdict}>
-            <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.regular, lineHeight: 20 }}>
+            <Text style={{ color: colors.text2, fontSize: 15, fontFamily: font.regular, lineHeight: 22 }}>
               <Text style={{ color: colors.text, fontFamily: font.bold }}>
                 {after >= floor ? 'Floor hit. ' : 'Good pick. '}
               </Text>
@@ -310,7 +310,7 @@ function Macro({ v, k, hi }: { v: string; k: string; hi?: boolean }) {
   return (
     <View style={s.macro}>
       <Text style={{ color: hi ? colors.blue : colors.text, fontSize: 21, fontFamily: font.heavy }}>{v}</Text>
-      <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.semibold, marginTop: 3 }}>{k}</Text>
+      <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.semibold, marginTop: 3 }}>{k}</Text>
     </View>
   );
 }
@@ -318,7 +318,7 @@ function Macro({ v, k, hi }: { v: string; k: string; hi?: boolean }) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#05070B' },
   title: { color: colors.text, fontSize: 24, fontFamily: font.heavy },
-  sub: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 8, lineHeight: 21 },
+  sub: { color: colors.text2, fontSize: 15, fontFamily: font.regular, marginTop: 8, lineHeight: 22 },
   close: {
     position: 'absolute',
     right: 20,
@@ -342,8 +342,8 @@ const s = StyleSheet.create({
     paddingTop: 14,
   },
   manualTitle: { color: colors.text, fontSize: 17, fontFamily: font.heavy },
-  hint: { color: colors.text2, fontSize: 11, fontFamily: font.regular, opacity: 0.8 },
-  hintWarn: { color: colors.amber, fontSize: 12, fontFamily: font.regular },
+  hint: { color: colors.text2, fontSize: 13, fontFamily: font.regular, opacity: 0.8 },
+  hintWarn: { color: colors.amber, fontSize: 13.5, fontFamily: font.regular },
   shutter: {
     width: 74,
     height: 74,
@@ -391,7 +391,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: font.regular,
   },
 });

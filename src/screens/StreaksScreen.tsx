@@ -62,10 +62,10 @@ export function StreaksScreen({ navigation }: Props) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1, lineHeight: 48 }}>
-            {streak} <Text style={{ fontSize: 16, color: colors.text2, fontFamily: font.bold }}>{streak === 1 ? 'day' : 'days'}</Text>
+            {streak} <Text style={{ fontSize: 17, color: colors.text2, fontFamily: font.bold }}>{streak === 1 ? 'day' : 'days'}</Text>
           </Text>
-          <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.semibold, marginTop: 2 }}>Current floor streak</Text>
-          <Text style={{ color: colors.text3, fontSize: 13, fontFamily: font.regular, marginTop: 2 }}>
+          <Text style={{ color: colors.text2, fontSize: 15, fontFamily: font.semibold, marginTop: 2 }}>Current floor streak</Text>
+          <Text style={{ color: colors.text3, fontSize: 14, fontFamily: font.regular, marginTop: 2 }}>
             Best {best} · floor hit {rate}% of days
           </Text>
         </View>
@@ -80,8 +80,8 @@ export function StreaksScreen({ navigation }: Props) {
           return (
             <Card key={sh.name} style={[s.shieldCard, !unlocked && !isNext && { opacity: 0.45 }]}>
               <Ionicons name={unlocked ? 'shield-checkmark' : 'shield-outline'} size={26} color={tint} />
-              <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold, marginTop: 6 }}>{sh.name}</Text>
-              <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 2, textAlign: 'center' }}>
+              <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 6 }}>{sh.name}</Text>
+              <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.regular, marginTop: 2, textAlign: 'center' }}>
                 {sh.days}-day streak
               </Text>
               {isNext ? (
@@ -119,7 +119,7 @@ export function StreaksScreen({ navigation }: Props) {
                     <Text
                       style={{
                         color: c.hit || c.today ? colors.text : colors.text2,
-                        fontSize: 13,
+                        fontSize: 14,
                         fontFamily: c.hit || c.today ? font.bold : font.regular,
                       }}
                       allowFontScaling={false}
@@ -157,13 +157,13 @@ function LegendDot({ color, dashed, label }: { color?: string; dashed?: boolean;
           dashed ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(61,123,255,0.7)' } : null,
         ]}
       />
-      <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular }}>{label}</Text>
+      <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular }}>{label}</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  sechead: { color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 18, marginBottom: 8 },
+  sechead: { color: colors.text, fontSize: 16, fontFamily: font.bold, marginTop: 18, marginBottom: 8 },
   flameHero: {
     width: 64,
     height: 64,
@@ -180,7 +180,7 @@ const s = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     color: colors.text2,
-    fontSize: 11.5,
+    fontSize: 13,
     fontFamily: font.bold,
     paddingBottom: 6,
   },

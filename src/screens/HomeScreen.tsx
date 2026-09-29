@@ -39,7 +39,7 @@ export function HomeScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
-            <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.semibold }}>Today</Text>
+            <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold }}>Today</Text>
             <Text style={{ color: colors.text, fontSize: 22, fontFamily: font.heavy, letterSpacing: -0.4, marginTop: 2 }}>
               {dateLabel}
             </Text>
@@ -52,7 +52,7 @@ export function HomeScreen({ navigation }: Props) {
         {isShotDay ? (
           <View style={s.shotBanner}>
             <View style={s.shotDot} />
-            <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular, flex: 1, lineHeight: 19 }}>
+            <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, flex: 1, lineHeight: 21 }}>
               <Text style={{ color: colors.text, fontFamily: font.bold }}>Shot day. </Text>
               Appetite will dip for about 48 hours, so small, protein-dense portions beat big meals. Your streak is safe today.
             </Text>
@@ -70,8 +70,8 @@ export function HomeScreen({ navigation }: Props) {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold }}>Muscle Guard score</Text>
-              <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 1 }}>
+              <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>Muscle Guard score</Text>
+              <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.regular, marginTop: 1 }}>
                 Floor hit {hitDaysLast7(state)} of 7 days · {liftsLast7(state)} lifts this week
               </Text>
             </View>
@@ -85,10 +85,10 @@ export function HomeScreen({ navigation }: Props) {
               <Ionicons name="flame" size={26} color={colors.flame} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold }}>
+              <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>
                 {streak}-day streak
               </Text>
-              <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.regular, marginTop: 2 }}>
+              <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 2 }}>
                 {toBronze > 0 ? `${toBronze} more days to your Bronze Shield` : 'Bronze Shield earned'} · shot-day
                 grace is on
               </Text>
@@ -102,14 +102,14 @@ export function HomeScreen({ navigation }: Props) {
 
         <View style={{ marginTop: 18 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-            <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.bold }}>Today's meals</Text>
-            <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular }}>
+            <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>Today's meals</Text>
+            <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.regular }}>
               {todayMeals.length} logged
             </Text>
           </View>
           {todayMeals.length === 0 ? (
             <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
-              <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, textAlign: 'center' }}>
+              <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, textAlign: 'center' }}>
                 Nothing logged yet. Scan your first meal to start filling the ring.
               </Text>
             </Card>
@@ -117,13 +117,13 @@ export function HomeScreen({ navigation }: Props) {
             todayMeals.map((m) => (
               <Card key={m.id} style={{ flexDirection: 'row', alignItems: 'center', padding: 13, marginBottom: 8 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.semibold }}>{m.name}</Text>
-                  <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.regular, marginTop: 1 }}>
+                  <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.semibold }}>{m.name}</Text>
+                  <Text style={{ color: colors.text2, fontSize: 13.5, fontFamily: font.regular, marginTop: 1 }}>
                     {new Date(m.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} ·{' '}
                     {m.source === 'scan' ? 'Scanned' : 'Added manually'}
                   </Text>
                 </View>
-                <Text style={{ color: colors.blue, fontSize: 15, fontFamily: font.heavy }}>+{m.proteinG}g</Text>
+                <Text style={{ color: colors.blue, fontSize: 16, fontFamily: font.heavy }}>+{m.proteinG}g</Text>
               </Card>
             ))
           )}
@@ -138,7 +138,7 @@ export function HomeScreen({ navigation }: Props) {
       <Pressable onPress={() => navigation.navigate('Scan')} style={s.fabWrap}>
         <LinearGradient colors={gradients.cta} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.fab}>
           <Ionicons name="scan" size={17} color="#fff" />
-          <Text style={{ color: '#fff', fontSize: 15, fontFamily: font.heavy }}>Scan a meal</Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontFamily: font.heavy }}>Scan a meal</Text>
         </LinearGradient>
       </Pressable>
     </SafeAreaView>

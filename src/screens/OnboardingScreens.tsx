@@ -58,7 +58,7 @@ function StatRingSlide() {
           />
         </Svg>
         <Text style={{ color: colors.text, fontSize: 44, fontFamily: font.heavy, letterSpacing: -1 }}>40%</Text>
-        <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.semibold, textAlign: 'center', marginTop: 3 }}>
+        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold, textAlign: 'center', marginTop: 3 }}>
           of GLP-1 weight loss{'\n'}can be muscle
         </Text>
       </View>
@@ -253,7 +253,7 @@ export function QuizShotScreen({ navigation }: P<'QuizShot'>) {
                 picked && profile.shotDay === i && { borderColor: colors.blue, backgroundColor: colors.blueSoft },
               ]}
             >
-              <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.semibold }}>{d}</Text>
+              <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.semibold }}>{d}</Text>
             </Pressable>
           ))}
         </View>
@@ -288,7 +288,7 @@ export function QuizWeightScreen({ navigation }: P<'QuizWeight'>) {
       <View style={s.unitRow}>
         {(['lb', 'kg'] as const).map((u) => (
           <Pressable key={u} onPress={() => setProfile({ unit: u })} style={[s.unitBtn, unit === u && s.unitBtnSel]}>
-            <Text style={{ color: unit === u ? '#fff' : colors.text2, fontFamily: font.bold, fontSize: 14 }}>{u}</Text>
+            <Text style={{ color: unit === u ? '#fff' : colors.text2, fontFamily: font.bold, fontSize: 15 }}>{u}</Text>
           </Pressable>
         ))}
       </View>
@@ -411,7 +411,7 @@ export function ComputingScreen({ navigation }: P<'Computing'>) {
       <Text style={{ color: colors.text, fontSize: 22, fontFamily: font.heavy, textAlign: 'center' }}>
         Building your muscle-protection plan
       </Text>
-      <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 12 }}>
+      <Text style={{ color: colors.text2, fontSize: 15, fontFamily: font.regular, marginTop: 12 }}>
         {COMPUTE_LINES[line]}
       </Text>
     </Screen>
@@ -434,7 +434,7 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
             {shownFloor}
             <Text style={{ fontSize: 26 }}>g</Text>
           </Text>
-          <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.semibold, marginTop: 8 }}>
+          <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.semibold, marginTop: 8 }}>
             Protein · every day
           </Text>
         </Card>
@@ -446,7 +446,7 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
             <Text style={s.factK}>per meal over 3 meals, realistic on a smaller appetite</Text>
           </Card>
           <Card style={{ flex: 1, padding: 14 }}>
-            <Text style={[s.factV, profile.med.length > 12 && { fontSize: 15, lineHeight: 19 }]} numberOfLines={2}>
+            <Text style={[s.factV, profile.med.length > 12 && { fontSize: 16, lineHeight: 20 }]} numberOfLines={2}>
               {profile.med}
             </Text>
             <Text style={s.factK}>your shot day is built into the plan</Text>
@@ -455,7 +455,7 @@ export function RevealScreen({ navigation }: P<'Reveal'>) {
       </FadeSlideIn>
       <FadeSlideIn delay={420}>
         <View style={s.warnNote}>
-          <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, lineHeight: 20 }}>
+          <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, lineHeight: 22 }}>
             <Text style={{ color: colors.amber, fontFamily: font.bold }}>Why it matters: </Text>
             clinical studies show up to 40% of weight lost on GLP-1s can be lean mass. Hitting your protein floor,
             alongside strength training, is one of the best-supported ways to hold on to muscle.
@@ -516,7 +516,7 @@ export function ProjectionScreen({ navigation }: P<'Projection'>) {
 }
 
 const s = StyleSheet.create({
-  inputLabel: { color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 18 },
+  inputLabel: { color: colors.text, fontSize: 16, fontFamily: font.bold, marginTop: 18 },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -524,7 +524,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     color: colors.text,
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: font.regular,
     marginTop: 10,
   },
@@ -541,9 +541,9 @@ const s = StyleSheet.create({
   },
   slideSub: {
     color: colors.text2,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: font.regular,
-    lineHeight: 23,
+    lineHeight: 24,
     textAlign: 'center',
     marginTop: 12,
     paddingHorizontal: 12,
@@ -584,9 +584,9 @@ const s = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 22,
   },
-  scaleLabel: { color: colors.text2, fontSize: 11.5, fontFamily: font.regular },
+  scaleLabel: { color: colors.text2, fontSize: 13, fontFamily: font.regular },
   factV: { color: colors.text, fontSize: 20, fontFamily: font.heavy, letterSpacing: -0.4 },
-  factK: { color: colors.text2, fontSize: 11, fontFamily: font.regular, marginTop: 3, lineHeight: 15 },
+  factK: { color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 3, lineHeight: 18 },
   warnNote: {
     marginTop: 14,
     padding: 14,
@@ -597,9 +597,9 @@ const s = StyleSheet.create({
   },
   disclaimer: {
     color: colors.text3,
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: font.regular,
-    lineHeight: 16,
+    lineHeight: 18,
     marginTop: 14,
     textAlign: 'center',
   },

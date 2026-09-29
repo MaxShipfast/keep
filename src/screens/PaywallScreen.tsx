@@ -152,18 +152,18 @@ export function PaywallScreen({ navigation }: Props) {
             >
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>{p.title}</Text>
+                  <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.bold }}>{p.title}</Text>
                   {p.badge ? (
                     <View style={s.badge}>
-                      <Text style={{ color: '#08101F', fontSize: 10.5, fontFamily: font.heavy }}>{p.badge}</Text>
+                      <Text style={{ color: '#08101F', fontSize: 12.5, fontFamily: font.heavy }}>{p.badge}</Text>
                     </View>
                   ) : null}
                 </View>
-                <Text style={{ color: colors.text2, fontSize: 12.5, fontFamily: font.regular, marginTop: 2 }}>{p.sub}</Text>
+                <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 2 }}>{p.sub}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.heavy }}>{p.price}</Text>
-                <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.semibold }}>{p.priceNote}</Text>
+                <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.heavy }}>{p.price}</Text>
+                <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.semibold }}>{p.priceNote}</Text>
               </View>
             </Pressable>
           ))
@@ -222,8 +222,8 @@ function Feature({ icon, title, sub }: { icon: keyof typeof Ionicons.glyphMap; t
         <Ionicons name={icon} size={13} color={colors.blue} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontSize: 14.5, fontFamily: font.bold }}>{title}</Text>
-        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
+        <Text style={{ color: colors.text, fontSize: 15.5, fontFamily: font.bold }}>{title}</Text>
+        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
       </View>
     </View>
   );
@@ -234,8 +234,8 @@ function TimelineRow({ title, sub, now }: { title: string; sub: string; now?: bo
     <View style={{ flexDirection: 'row', gap: 14, paddingVertical: 4 }}>
       <View style={[s.dot, now && { backgroundColor: colors.blue }]} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: colors.text, fontSize: 13, fontFamily: font.bold }}>{title}</Text>
-        <Text style={{ color: colors.text2, fontSize: 11.5, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
+        <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.bold }}>{title}</Text>
+        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 1 }}>{sub}</Text>
       </View>
     </View>
   );
@@ -269,29 +269,29 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,180,84,0.45)',
   },
-  errorTitle: { color: colors.text, fontSize: 14.5, fontFamily: font.bold },
-  errorText: { color: colors.text2, fontSize: 12.5, fontFamily: font.regular, marginTop: 4, lineHeight: 18 },
+  errorTitle: { color: colors.text, fontSize: 15.5, fontFamily: font.bold },
+  errorText: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 4, lineHeight: 20 },
   errorDetail: {
     color: colors.text3,
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: font.regular,
     marginTop: 8,
-    lineHeight: 16,
+    lineHeight: 18,
   },
-  detailsToggle: { color: colors.text3, fontSize: 12, fontFamily: font.semibold, paddingRight: 4 },
+  detailsToggle: { color: colors.text3, fontSize: 13.5, fontFamily: font.semibold, paddingRight: 4 },
   fineprint: {
     color: colors.text2,
     opacity: 0.75,
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: font.regular,
     textAlign: 'center',
     marginTop: 12,
-    lineHeight: 17,
+    lineHeight: 18,
   },
   linkRow: { flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 8 },
   legalLink: {
     color: colors.text2,
-    fontSize: 11,
+    fontSize: 13,
     fontFamily: font.semibold,
     textDecorationLine: 'underline',
   },

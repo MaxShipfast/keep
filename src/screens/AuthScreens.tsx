@@ -394,10 +394,10 @@ const a = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  appleBusyText: { color: colors.text, fontSize: 15, fontFamily: font.bold },
+  appleBusyText: { color: colors.text, fontSize: 16, fontFamily: font.bold },
   consent: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 2 },
-  consentText: { color: colors.text2, fontSize: 12.5, fontFamily: font.regular, flex: 1, lineHeight: 18 },
-  or: { color: colors.text3, fontSize: 12.5, fontFamily: font.semibold, textAlign: 'center', marginTop: 18 },
+  consentText: { color: colors.text2, fontSize: 14, fontFamily: font.regular, flex: 1, lineHeight: 20 },
+  or: { color: colors.text3, fontSize: 14, fontFamily: font.semibold, textAlign: 'center', marginTop: 18 },
 });
 
 const s = StyleSheet.create({
@@ -408,7 +408,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: font.regular,
     marginTop: 22,
   },

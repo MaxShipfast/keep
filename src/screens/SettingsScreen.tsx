@@ -196,7 +196,7 @@ function LinkRow({ title, url, first }: { title: string; url: string; first?: bo
 }
 
 const s = StyleSheet.create({
-  groupTitle: { color: colors.text, fontSize: 13, fontFamily: font.bold, marginTop: 22, marginBottom: 9 },
+  groupTitle: { color: colors.text, fontSize: 14, fontFamily: font.bold, marginTop: 22, marginBottom: 9 },
   group: { borderRadius: 16, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
@@ -207,8 +207,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  rowKey: { color: colors.text, fontSize: 15, fontFamily: font.semibold },
-  rowHint: { color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 3, lineHeight: 18 },
-  rowVal: { color: colors.text2, fontSize: 13, fontFamily: font.regular },
-  disc: { color: colors.text2, opacity: 0.7, fontSize: 11.5, fontFamily: font.regular, lineHeight: 19, marginTop: 22 },
+  rowKey: { color: colors.text, fontSize: 16, fontFamily: font.semibold },
+  rowHint: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 3, lineHeight: 19 },
+  rowVal: { color: colors.text2, fontSize: 14, fontFamily: font.regular },
+  disc: { color: colors.text2, opacity: 0.7, fontSize: 13, fontFamily: font.regular, lineHeight: 21, marginTop: 22 },
 });

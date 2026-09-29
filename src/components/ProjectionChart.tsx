@@ -32,7 +32,7 @@ export function ProjectionChart({
 
   return (
     <Card style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 12 }}>
-      <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold, paddingHorizontal: 6 }}>
+      <Text style={{ color: colors.text, fontSize: 16, fontFamily: font.bold, paddingHorizontal: 6 }}>
         What your {loss} {unit} is made of
       </Text>
       <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
@@ -93,7 +93,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
       <View style={{ width: 12, height: 12, borderRadius: 4, backgroundColor: color }} />
-      <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular }}>{label}</Text>
+      <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular }}>{label}</Text>
     </View>
   );
 }

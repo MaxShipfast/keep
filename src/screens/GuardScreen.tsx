@@ -50,7 +50,7 @@ export function GuardScreen({ navigation }: Props) {
       <Eyebrow>Muscle Guard score</Eyebrow>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12, marginTop: 8 }}>
         <Text style={{ color: colors.green, fontSize: 46, fontFamily: font.heavy, letterSpacing: -1.5 }}>{score}</Text>
-        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular }}>this week</Text>
+        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.regular }}>this week</Text>
       </View>
 
       <Text style={s.sechead}>How it's built</Text>
@@ -98,7 +98,7 @@ export function GuardScreen({ navigation }: Props) {
 
       {weighOpen ? (
         <Card style={{ marginTop: 8, gap: 10 }}>
-          <Text style={{ color: colors.text, fontSize: 13.5, fontFamily: font.bold }}>Today's weight ({unit})</Text>
+          <Text style={{ color: colors.text, fontSize: 15, fontFamily: font.bold }}>Today's weight ({unit})</Text>
           <TextInput
             value={weighVal}
             onChangeText={setWeighVal}
@@ -112,7 +112,7 @@ export function GuardScreen({ navigation }: Props) {
           />
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Pressable style={[s.miniCta, s.miniCtaGhost]} onPress={() => setWeighOpen(false)}>
-              <Text style={{ color: colors.text2, fontFamily: font.bold, fontSize: 14 }}>Cancel</Text>
+              <Text style={{ color: colors.text2, fontFamily: font.bold, fontSize: 15 }}>Cancel</Text>
             </Pressable>
             <Pressable
               style={[s.miniCta, { flex: 1 }]}
@@ -131,7 +131,7 @@ export function GuardScreen({ navigation }: Props) {
                 setWeighOpen(false);
               }}
             >
-              <Text style={{ color: '#fff', fontFamily: font.bold, fontSize: 14 }}>Save weigh-in</Text>
+              <Text style={{ color: '#fff', fontFamily: font.bold, fontSize: 15 }}>Save weigh-in</Text>
             </Pressable>
           </View>
         </Card>
@@ -151,7 +151,7 @@ export function GuardScreen({ navigation }: Props) {
                   !past && { opacity: 0.35 },
                 ]}
               />
-              <Text style={{ color: colors.text2, fontSize: 10, fontFamily: font.semibold, marginTop: 5 }}>
+              <Text style={{ color: colors.text2, fontSize: 12, fontFamily: font.semibold, marginTop: 5 }}>
                 {DAY_LABELS[i]}
               </Text>
             </View>
@@ -191,21 +191,21 @@ function BreakdownRow({
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
           <Ionicons name={icon} size={14} color={colors.blueLight} />
-          <Text style={{ color: colors.text, fontSize: 13, fontFamily: font.bold }}>{title}</Text>
+          <Text style={{ color: colors.text, fontSize: 14, fontFamily: font.bold }}>{title}</Text>
         </View>
-        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.bold }}>{pts}</Text>
+        <Text style={{ color: colors.text2, fontSize: 14, fontFamily: font.bold }}>{pts}</Text>
       </View>
       <View style={s.bar}>
         <View style={[s.barFill, { width: `${Math.round(Math.min(1, Math.max(0, frac)) * 100)}%` }]} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-        <Text style={{ color: colors.text2, fontSize: 11, fontFamily: font.regular, flex: 1 }}>{note}</Text>
+        <Text style={{ color: colors.text2, fontSize: 13, fontFamily: font.regular, flex: 1 }}>{note}</Text>
         {action && onAction ? (
           <Pressable onPress={onAction} style={[s.miniBtn, actionDone && s.miniBtnDone]}>
             <Text
               style={{
                 color: actionDone ? colors.green : colors.blue,
-                fontSize: 11.5,
+                fontSize: 13,
                 fontFamily: font.bold,
               }}
             >
@@ -219,7 +219,7 @@ function BreakdownRow({
 }
 
 const s = StyleSheet.create({
-  sechead: { color: colors.text, fontSize: 13.5, fontFamily: font.bold, marginTop: 14, marginBottom: 7 },
+  sechead: { color: colors.text, fontSize: 15, fontFamily: font.bold, marginTop: 14, marginBottom: 7 },
   bar: { marginTop: 8, height: 6, borderRadius: 3, backgroundColor: colors.surface2, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.blue },
   miniBtn: {
@@ -244,7 +244,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: font.regular,
   },
   miniCta: { backgroundColor: colors.blue, borderRadius: 12, padding: 13, alignItems: 'center' },

@@ -179,9 +179,9 @@ const s = StyleSheet.create({
     borderRadius: radius.card,
     alignItems: 'center',
   },
-  ctaText: { color: '#fff', fontSize: 16, fontFamily: font.bold },
+  ctaText: { color: '#fff', fontSize: 17, fontFamily: font.bold },
   ghost: { padding: 12, alignItems: 'center' },
-  ghostText: { color: colors.text2, fontSize: 14, fontFamily: font.semibold },
+  ghostText: { color: colors.text2, fontSize: 15, fontFamily: font.semibold },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.line,
@@ -189,9 +189,9 @@ const s = StyleSheet.create({
     borderRadius: radius.card,
     padding: 16,
   },
-  eyebrow: { color: colors.blue, fontSize: 13, fontFamily: font.bold },
+  eyebrow: { color: colors.blue, fontSize: 14, fontFamily: font.bold },
   h1: { color: colors.text, fontSize: 30, fontFamily: font.heavy, letterSpacing: -0.5, lineHeight: 36, marginTop: 10 },
-  lede: { color: colors.text2, fontSize: 15, fontFamily: font.regular, lineHeight: 23, marginTop: 12 },
+  lede: { color: colors.text2, fontSize: 16, fontFamily: font.regular, lineHeight: 25, marginTop: 12 },
   progressRow: { flexDirection: 'row', gap: 5, marginBottom: 26, marginTop: 8 },
   progressBar: { height: 3, flex: 1, borderRadius: 2, backgroundColor: colors.surface2 },
   opt: {
@@ -204,8 +204,8 @@ const s = StyleSheet.create({
     borderColor: colors.line,
     marginTop: 10,
   },
-  optTitle: { color: colors.text, fontSize: 15.5, fontFamily: font.semibold },
-  optSub: { color: colors.text2, fontSize: 12.5, fontFamily: font.regular, marginTop: 3 },
+  optTitle: { color: colors.text, fontSize: 16.5, fontFamily: font.semibold },
+  optSub: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 3 },
   tick: {
     width: 20,
     height: 20,
@@ -224,5 +224,5 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 13,
   },
-  insightText: { color: colors.text2, fontSize: 12.5, fontFamily: font.regular, lineHeight: 19 },
+  insightText: { color: colors.text2, fontSize: 14, fontFamily: font.regular, lineHeight: 21 },
 });
