@@ -316,7 +316,8 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
   const [busy, setBusy] = useState(false);
   const [optIn, setOptIn] = useState(marketingOptInDefault);
   const mounted = useRef(true);
-  const toHome = () => navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+  // Next stop after purchase is the reminders ask, which forwards to Home once answered.
+  const toHome = () => navigation.reset({ index: 0, routes: [{ name: 'Reminders' }] });
 
   useEffect(() => {
     let active = true;
@@ -362,7 +363,7 @@ export function SaveProgressScreen({ navigation }: SaveProgressProps) {
       {emailSignInEnabled && !busy ? (
         <GhostButton
           title="Use email instead"
-          onPress={() => navigation.navigate('SignIn', { source: 'after_purchase', next: 'Home', marketingOptIn: optIn })}
+          onPress={() => navigation.navigate('SignIn', { source: 'after_purchase', next: 'Reminders', marketingOptIn: optIn })}
         />
       ) : null}
       <ConsentRow value={optIn} onChange={setOptIn} />

@@ -64,7 +64,7 @@ export function PaywallScreen({ navigation }: Props) {
     setEntitled(true);
     setProfile({ onboarded: true });
     // The optional-account prompt only exists when cloud backup is switched on.
-    navigation.reset({ index: 0, routes: [{ name: syncEnabled ? 'SaveProgress' : 'Home' }] });
+    navigation.reset({ index: 0, routes: [{ name: syncEnabled ? 'SaveProgress' : 'Reminders' }] });
   };
 
   const plan = plans.find((p) => p.id === selected) ?? plans[0];

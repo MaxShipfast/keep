@@ -99,6 +99,14 @@ function isEntitled(info: CustomerInfo): boolean {
   return info.activeSubscriptions.some((id) => ids.includes(id));
 }
 
+/** End of a free trial that will convert to paid, or null (no trial, or already cancelled). */
+function renewingTrialEnd(info: CustomerInfo): number | null {
+  const ent = info.entitlements.active[PRO_ENTITLEMENT];
+  if (!ent || ent.periodType !== 'TRIAL' || !ent.willRenew || !ent.expirationDate) return null;
+  const t = Date.parse(ent.expirationDate);
+  return Number.isFinite(t) ? t : null;
+}
+
 /** Resolves once configure() has run, so plan/purchase calls never race app start. */
 let ready: Promise<void> = Promise.resolve();
 
@@ -107,7 +115,7 @@ let ready: Promise<void> = Promise.resolve();
  * `onEntitled` fires with the current state at launch and again whenever it changes
  * (purchase, renewal, expiry, restore on a new phone).
  */
-export function initPurchases(onEntitled: (entitled: boolean) => void): void {
+export function initPurchases(onEntitled: (entitled: boolean, trialEndsAt: number | null) => void): void {
   const rc = Purchases;
   if (!rc) return;
   ready = (async () => {
@@ -120,9 +128,10 @@ export function initPurchases(onEntitled: (entitled: boolean) => void): void {
       Purchases = null;
       return;
     }
-    rc.addCustomerInfoUpdateListener((info) => onEntitled(isEntitled(info)));
+    rc.addCustomerInfoUpdateListener((info) => onEntitled(isEntitled(info), renewingTrialEnd(info)));
     try {
-      onEntitled(isEntitled(await rc.getCustomerInfo()));
+      const info = await rc.getCustomerInfo();
+      onEntitled(isEntitled(info), renewingTrialEnd(info));
     } catch {
       // Offline at launch: keep whatever the local store already says.
     }

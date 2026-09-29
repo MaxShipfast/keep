@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, font } from '../theme';
@@ -8,6 +8,7 @@ import { useStore, floorG } from '../store';
 import { DAY_FULL } from '../lib/dates';
 import { formatWeight } from '../lib/units';
 import { syncEnabled, currentEmail, signOut, deleteAccount } from '../lib/sync';
+import { reminderPermission, enableReminders, disableReminders } from '../lib/reminders';
 import type { RootStackParamList } from '../nav';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -104,6 +105,34 @@ export function SettingsScreen({ navigation }: Props) {
         )}
       </View>
 
+      <Text style={s.groupTitle}>Reminders</Text>
+      <View style={s.group}>
+        <View style={s.row}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={s.rowKey}>Daily protein reminders</Text>
+            <Text style={s.rowHint}>Lunch and evening checks, shot-day tips, and your Sunday score</Text>
+          </View>
+          <Switch
+            value={state.remindersOn}
+            trackColor={{ true: colors.blue, false: colors.surface2 }}
+            onValueChange={async (on) => {
+              if (!on) {
+                await disableReminders();
+                return;
+              }
+              if ((await reminderPermission()) === 'denied') {
+                Alert.alert('Notifications are off for Keep', 'Turn them on in Settings to get reminders.', [
+                  { text: 'Not now', style: 'cancel' },
+                  { text: 'Open Settings', onPress: () => Linking.openSettings() },
+                ]);
+                return;
+              }
+              await enableReminders();
+            }}
+          />
+        </View>
+      </View>
+
       <Text style={s.groupTitle}>Subscription</Text>
       <View style={s.group}>
         <View style={s.row}>
@@ -178,7 +207,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  rowKey: { color: colors.text, fontSize: 14.5, fontFamily: font.semibold },
+  rowKey: { color: colors.text, fontSize: 15, fontFamily: font.semibold },
+  rowHint: { color: colors.text2, fontSize: 13, fontFamily: font.regular, marginTop: 3, lineHeight: 18 },
   rowVal: { color: colors.text2, fontSize: 13, fontFamily: font.regular },
   disc: { color: colors.text2, opacity: 0.7, fontSize: 11.5, fontFamily: font.regular, lineHeight: 19, marginTop: 22 },
 });

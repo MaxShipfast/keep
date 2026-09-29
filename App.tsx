@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import {
   useFonts,
   Inter_400Regular,
@@ -27,7 +27,9 @@ import {
   ProjectionScreen,
 } from './src/screens/OnboardingScreens';
 import { SignInScreen, SavePlanScreen, SaveProgressScreen } from './src/screens/AuthScreens';
+import { RemindersScreen } from './src/screens/RemindersScreen';
 import { schedulePush, recordPro, watchAppleRevocation } from './src/lib/sync';
+import { rescheduleReminders } from './src/lib/reminders';
 import { PaywallScreen } from './src/screens/PaywallScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { GuardScreen } from './src/screens/GuardScreen';
@@ -63,6 +65,7 @@ export default function App() {
     const gateTimer = setTimeout(() => setHydrated(true), 4000);
     initAnalytics();
     track('app_open');
+    let reminderTimer: ReturnType<typeof setTimeout> | null = null;
     // Best-effort cloud backup on every local change (no-op when signed out).
     const unsub = useStore.subscribe((s, prev) => {
       schedulePush(() => ({
@@ -73,10 +76,26 @@ export default function App() {
       }));
       // Lifecycle email needs to know who is Pro (no-op when signed out).
       if (s.entitled !== prev.entitled) recordPro(s.entitled).catch(() => {});
+      if (
+        s.mealsByDate !== prev.mealsByDate ||
+        s.entitled !== prev.entitled ||
+        s.remindersOn !== prev.remindersOn ||
+        s.trialEndsAt !== prev.trialEndsAt ||
+        s.profile !== prev.profile
+      ) {
+        if (reminderTimer) clearTimeout(reminderTimer);
+        reminderTimer = setTimeout(() => rescheduleReminders().catch(() => {}), 1500);
+      }
+    });
+    // Today's reminders depend on the date and the grams logged, so refresh them on every return.
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') rescheduleReminders().catch(() => {});
     });
     const unwatchApple = watchAppleRevocation();
     return () => {
       unsub();
+      appStateSub.remove();
+      if (reminderTimer) clearTimeout(reminderTimer);
       unwatchApple();
       unsubHydration();
       clearTimeout(gateTimer);
@@ -87,7 +106,11 @@ export default function App() {
   // with the stored value, which would clobber a fresher answer from the store.
   useEffect(() => {
     if (!hydrated) return;
-    initPurchases((v) => useStore.getState().setEntitled(v));
+    initPurchases((v, trialEndsAt) => {
+      useStore.getState().setEntitled(v);
+      useStore.getState().setTrialEndsAt(trialEndsAt);
+    });
+    rescheduleReminders().catch(() => {});
   }, [hydrated]);
 
   if (!fontsLoaded || !hydrated) {
@@ -122,6 +145,7 @@ export default function App() {
         <Stack.Screen name="Projection" component={ProjectionScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="SaveProgress" component={SaveProgressScreen} options={{ gestureEnabled: false }} />
+        <Stack.Screen name="Reminders" component={RemindersScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ gestureEnabled: false }} />
         <Stack.Screen name="Guard" component={GuardScreen} />
         <Stack.Screen name="Streaks" component={StreaksScreen} />

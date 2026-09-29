@@ -35,6 +35,10 @@ type State = {
   entitled: boolean;
   /** The user agreed to send meal photos to OpenAI for analysis (App Review 5.1.2(i)). */
   aiConsent: boolean;
+  /** Daily protein reminders (local notifications); see lib/reminders. */
+  remindersOn: boolean;
+  /** When a renewing free trial converts to paid, from RevenueCat; null otherwise. */
+  trialEndsAt: number | null;
 
   setProfile: (p: Partial<Profile>) => void;
   logMeal: (m: Omit<Meal, 'id' | 'at'>) => void;
@@ -42,6 +46,8 @@ type State = {
   logWeighIn: (weightLb: number) => void;
   setEntitled: (v: boolean) => void;
   setAiConsent: (v: boolean) => void;
+  setRemindersOn: (v: boolean) => void;
+  setTrialEndsAt: (v: number | null) => void;
   resetAll: () => void;
   /** Replaces local data with a cloud backup (used at sign-in). */
   hydrate: (remote: Partial<Pick<State, 'profile' | 'mealsByDate' | 'liftDates' | 'weighIns'>>) => void;
@@ -108,6 +114,8 @@ export const useStore = create<State>()(
       weighIns: [],
       entitled: false,
       aiConsent: false,
+      remindersOn: false,
+      trialEndsAt: null,
 
       setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
       logMeal: (m) =>
@@ -129,6 +137,8 @@ export const useStore = create<State>()(
         }),
       setEntitled: (v) => set({ entitled: v }),
       setAiConsent: (v) => set({ aiConsent: v }),
+      setRemindersOn: (v) => set({ remindersOn: v }),
+      setTrialEndsAt: (v) => set({ trialEndsAt: v }),
       // Erases the plan and logs but not the subscription: that belongs to the Apple ID.
       resetAll: () =>
         set((s) => ({ profile: defaultProfile, mealsByDate: {}, liftDates: {}, weighIns: [], entitled: s.entitled })),

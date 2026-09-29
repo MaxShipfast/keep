@@ -4,7 +4,7 @@ export type RootStackParamList = {
     | {
         source: import('./lib/sync').SignupSource;
         /** Where to go after signing in; defaults to wherever the saved state says the user belongs. */
-        next?: 'Reveal' | 'Home';
+        next?: 'Reveal' | 'Home' | 'Reminders';
         marketingOptIn?: boolean;
       }
     | undefined;
@@ -19,6 +19,7 @@ export type RootStackParamList = {
   Projection: undefined;
   Paywall: undefined;
   SaveProgress: undefined;
+  Reminders: undefined;
   Home: undefined;
   Guard: undefined;
   Streaks: undefined;
