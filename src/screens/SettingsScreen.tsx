@@ -37,7 +37,7 @@ export function SettingsScreen({ navigation }: Props) {
       <Text style={s.groupTitle}>Profile</Text>
       <View style={s.group}>
         {rows.map(([k, v], i) => (
-          <View key={k} style={[s.row, i > 0 && { borderTopWidth: 0 }]}>
+          <View key={k} style={[s.row, i > 0 && s.sep]}>
             <Text style={s.rowKey}>{k}</Text>
             <Text style={s.rowVal}>{v}</Text>
           </View>
@@ -61,7 +61,7 @@ export function SettingsScreen({ navigation }: Props) {
               </Text>
             </View>
             <Pressable
-              style={[s.row, { borderTopWidth: 0 }]}
+              style={[s.row, s.sep]}
               onPress={async () => {
                 await signOut();
                 setEmail(null);
@@ -70,11 +70,11 @@ export function SettingsScreen({ navigation }: Props) {
               <Text style={s.rowKey}>Sign out</Text>
             </Pressable>
             <Pressable
-              style={[s.row, { borderTopWidth: 0 }]}
+              style={[s.row, s.sep]}
               onPress={() =>
                 Alert.alert(
                   'Delete your account?',
-                  'This permanently deletes your account and the backup of your plan, meals and weigh-ins from our servers. Data on this phone stays. Your subscription is billed by Apple: cancel it separately in Settings > Subscriptions.',
+                  'This permanently deletes your account, your cloud backup, and your plan and history on this phone. Your subscription is billed by Apple: cancel it separately in Settings > your name > Subscriptions.',
                   [
                     { text: 'Cancel', style: 'cancel' },
                     {
@@ -83,11 +83,14 @@ export function SettingsScreen({ navigation }: Props) {
                       onPress: async () => {
                         try {
                           await deleteAccount();
-                          setEmail(null);
-                          Alert.alert('Account deleted', 'Your account and backup are gone from our servers.');
                         } catch (e: any) {
                           Alert.alert("Couldn't delete the account", e?.message ?? 'Check your connection and try again.');
+                          return;
                         }
+                        // A deleted account leaves nothing behind: fresh app, back to the start.
+                        resetAll();
+                        navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
+                        Alert.alert('Account deleted', 'Your account, backup and data on this phone have been deleted.');
                       },
                     },
                   ]
@@ -110,7 +113,7 @@ export function SettingsScreen({ navigation }: Props) {
         <View style={s.row}>
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={s.rowKey}>Daily protein reminders</Text>
-            <Text style={s.rowHint}>Lunch and evening checks, shot-day tips, and your Sunday score</Text>
+            <Text style={s.rowHint}>An evening check when you're short, shot-day tips, your Sunday score and a trial heads-up</Text>
           </View>
           <Switch
             value={state.remindersOn}
@@ -185,7 +188,7 @@ const TERMS_URL = 'https://keep-scan.shipfastvc.workers.dev/terms';
 function LinkRow({ title, url, first }: { title: string; url: string; first?: boolean }) {
   return (
     <Pressable
-      style={[s.row, !first && { borderTopWidth: 0 }]}
+      style={[s.row, !first && s.sep]}
       accessibilityRole="link"
       onPress={() => Linking.openURL(url).catch(() => Alert.alert("Couldn't open the link", url))}
     >
@@ -197,16 +200,23 @@ function LinkRow({ title, url, first }: { title: string; url: string; first?: bo
 
 const s = StyleSheet.create({
   groupTitle: { color: colors.text, fontSize: 14, fontFamily: font.bold, marginTop: 22, marginBottom: 9 },
-  group: { borderRadius: 16, overflow: 'hidden' },
+  // The border and fill live on the rounded group, never on rows: a square row border clipped by
+  // the rounded corner renders as a fuzzy half-pixel edge.
+  group: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.lineStrong,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
   },
+  sep: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineStrong },
   rowKey: { color: colors.text, fontSize: 16, fontFamily: font.semibold },
   rowHint: { color: colors.text2, fontSize: 14, fontFamily: font.regular, marginTop: 3, lineHeight: 19 },
   rowVal: { color: colors.text2, fontSize: 14, fontFamily: font.regular },

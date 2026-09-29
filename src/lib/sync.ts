@@ -18,10 +18,10 @@ import { linkPurchasesUser, clearPurchasesEmail } from './purchases';
  * Tables and the delete function live in supabase/migrations.
  */
 
-const URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-export const syncEnabled = Boolean(URL && KEY);
+export const syncEnabled = Boolean(SUPABASE_URL && KEY);
 export const emailSignInEnabled = syncEnabled && process.env.EXPO_PUBLIC_EMAIL_SIGNIN === '1';
 /** Google needs a client ID and secret in the Supabase dashboard first (see README). */
 export const googleSignInEnabled = syncEnabled && process.env.EXPO_PUBLIC_GOOGLE_SIGNIN === '1';
@@ -32,7 +32,7 @@ let client: SupabaseClient | null = null;
 
 function supabase(): SupabaseClient {
   if (!client) {
-    client = createClient(URL, KEY, {
+    client = createClient(SUPABASE_URL, KEY, {
       // PKCE: the Google redirect carries a one-time code, never tokens, back into the app.
       auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, flowType: 'pkce' },
     });
@@ -242,6 +242,7 @@ export async function recordPro(pro: boolean): Promise<void> {
 export async function signOut(): Promise<void> {
   if (!syncEnabled) return;
   await supabase().auth.signOut();
+  await forgetLocalSession();
 }
 
 /** Deletes the account and all backed-up data on our servers (App Review 5.1.1(v)). */
@@ -251,6 +252,18 @@ export async function deleteAccount(): Promise<void> {
   await clearPurchasesEmail();
   // The server session died with the user, so only the local copy needs clearing.
   await supabase().auth.signOut({ scope: 'local' });
+  await forgetLocalSession();
+}
+
+/**
+ * Removes the stored session directly. signOut() returns (rather than throws) when it can't reach
+ * or refresh the server, and in that case it can leave the old session in storage: a deleted
+ * account must never still look signed in.
+ */
+async function forgetLocalSession(): Promise<void> {
+  const ref = new URL(SUPABASE_URL).hostname.split('.')[0];
+  const key = `sb-${ref}-auth-token`;
+  await AsyncStorage.multiRemove([key, `${key}-code-verifier`, `${key}-user`]).catch(() => {});
 }
 
 /* ---------- Backup ---------- */
